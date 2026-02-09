@@ -1,0 +1,7 @@
+{
+  "name": "- ReVoxMix-",
+  "description": "Una aplicación profesional de streaming de emisoras de radio donde puedes seleccionar entre distintas cadenas ,mezclar e incluso grabar las emisiones de las radios.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

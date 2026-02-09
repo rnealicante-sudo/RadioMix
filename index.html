@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b111a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit - Alicante" />
+    <title>ReVoxMix - Full Screen Broadcast</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <style>
+      :root {
+        --bg-main: #0b111a;
+        --fader-height: 150px;
+      }
+      
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+      }
+
+      body {
+        -webkit-tap-highlight-color: transparent;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        user-select: none;
+      }
+
+      .animate-pulse, .active-glow, .fader-vertical {
+        will-change: transform, opacity, box-shadow;
+      }
+
+      .fader-vertical {
+        -webkit-appearance: none;
+        width: var(--fader-height); 
+        background: transparent;
+        cursor: pointer;
+        height: 40px;
+        transform: rotate(-90deg);
+        transform-origin: center;
+        margin: 0;
+        position: absolute;
+      }
+
+      .fader-vertical::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 6px; 
+        background: #0f172a; 
+        border-radius: 4px;
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.8);
+        border: 1px solid #020617;
+      }
+
+      .fader-vertical::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        border: 1px solid #475569;
+        height: 36px;
+        width: 24px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 40%, #94a3b8 50%, #cbd5e1 100%);
+        cursor: pointer;
+        margin-top: -15px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.7);
+      }
+
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+      .toggle-switch {
+        position: relative; width: 30px; height: 50px; background: #020617; border-radius: 2px; border: 1px solid #1e293b; cursor: pointer;
+      }
+      .toggle-handle {
+        position: absolute; left: 2px; width: 24px; height: 24px; background: linear-gradient(to bottom, #e2e8f0, #64748b); border-radius: 2px; transition: top 0.2s ease;
+      }
+      .toggle-switch.up .toggle-handle { top: 2px; }
+      .toggle-switch.down .toggle-handle { top: 22px; }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
