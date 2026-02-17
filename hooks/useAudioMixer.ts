@@ -59,7 +59,6 @@ export const useAudioMixer = () => {
   const mixBusRef = useRef<GainNode | null>(null);
   const decksRef = useRef<Map<DeckId, DeckNodeGroup>>(new Map());
 
-  // Monitor Elements (Hidden Audio Elements for Routing)
   const masterMonitorRef = useRef<HTMLAudioElement>(new Audio());
   const aux1MonitorRef = useRef<HTMLAudioElement>(new Audio());
   const aux2MonitorRef = useRef<HTMLAudioElement>(new Audio());
@@ -78,9 +77,6 @@ export const useAudioMixer = () => {
   const mediaRecorders = useRef<(MediaRecorder | null)[]>([null, null, null]);
   const streamDestinations = useRef<(MediaStreamAudioDestinationNode | null)[]>([null, null, null]);
 
-  const [isLimiterActive, setIsLimiterActive] = useState(true);
-  const [isCompressorActive, setIsCompressorActive] = useState(false);
-
   const updateGlobalPlayState = useCallback(() => {
     let playing = false;
     decksRef.current.forEach(d => {
@@ -94,7 +90,6 @@ export const useAudioMixer = () => {
     if (audioContextRef.current.state === 'suspended') {
       await audioContextRef.current.resume();
     }
-    // Ensure monitors play
     masterMonitorRef.current.play().catch(() => {});
     aux1MonitorRef.current.play().catch(() => {});
     aux2MonitorRef.current.play().catch(() => {});
@@ -107,7 +102,6 @@ export const useAudioMixer = () => {
     }
     el.pause(); el.load();
 
-    // Attach listeners for global play state
     el.onplay = updateGlobalPlayState;
     el.onpause = updateGlobalPlayState;
 
@@ -129,116 +123,118 @@ export const useAudioMixer = () => {
     deck.currentUrl = url;
   }, [updateGlobalPlayState]);
 
-  // Enumerar dispositivos de salida
   useEffect(() => {
     const getDevices = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }); // Solicitar permiso para ver labels
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const outputs = devices.filter(d => d.kind === 'audiooutput');
-        setOutputDevices(outputs);
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const outputs = devices.filter(d => d.kind === 'audiooutput');
+          setOutputDevices(outputs);
+        }
       } catch (err) {
         console.warn("No se pudieron enumerar dispositivos de audio", err);
       }
     };
     getDevices();
-    navigator.mediaDevices.ondevicechange = getDevices;
+    if (navigator.mediaDevices) {
+        navigator.mediaDevices.ondevicechange = getDevices;
+    }
   }, []);
 
   useEffect(() => {
     const initAudio = async () => {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContextClass(); audioContextRef.current = ctx;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
 
-      const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
-      const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
-      const masterAnalyser = ctx.createAnalyser(); masterAnalyser.fftSize = 2048; masterAnalyserRef.current = masterAnalyser;
-      
-      mixBus.connect(masterGain).connect(masterAnalyser); // No conectamos a ctx.destination directamente para controlar outputs
+        const ctx = new AudioContextClass(); 
+        audioContextRef.current = ctx;
 
-      const auxMasterGain = ctx.createGain(); auxMasterGainRef.current = auxMasterGain;
-      const auxAnalyser = ctx.createAnalyser(); auxAnalyser.fftSize = 512; auxAnalyserRef.current = auxAnalyser;
-      auxMasterGain.connect(auxAnalyser);
-      
-      const aux2MasterGain = ctx.createGain(); aux2MasterGainRef.current = aux2MasterGain;
-      const aux2Analyser = ctx.createAnalyser(); aux2Analyser.fftSize = 512; aux2AnalyserRef.current = aux2Analyser;
-      aux2MasterGain.connect(aux2Analyser);
-
-      // Recording Destinations
-      streamDestinations.current[0] = ctx.createMediaStreamDestination(); masterGain.connect(streamDestinations.current[0]);
-      streamDestinations.current[1] = ctx.createMediaStreamDestination(); auxMasterGain.connect(streamDestinations.current[1]);
-      streamDestinations.current[2] = ctx.createMediaStreamDestination(); aux2MasterGain.connect(streamDestinations.current[2]);
-
-      // Monitor Destinations (For Audio Output Routing)
-      const masterMonitorDest = ctx.createMediaStreamDestination();
-      masterGain.connect(masterMonitorDest);
-      masterMonitorRef.current.srcObject = masterMonitorDest.stream;
-
-      const aux1MonitorDest = ctx.createMediaStreamDestination();
-      auxMasterGain.connect(aux1MonitorDest);
-      aux1MonitorRef.current.srcObject = aux1MonitorDest.stream;
-
-      const aux2MonitorDest = ctx.createMediaStreamDestination();
-      aux2MasterGain.connect(aux2MonitorDest);
-      aux2MonitorRef.current.srcObject = aux2MonitorDest.stream;
-
-      DECKS.forEach(id => {
-        const inputGain = ctx.createGain();
-        const lowFilter = ctx.createBiquadFilter(); lowFilter.type = 'lowshelf'; lowFilter.frequency.value = 100;
-        const midFilter = ctx.createBiquadFilter(); midFilter.type = 'peaking'; midFilter.frequency.value = 1000; midFilter.Q.value = 1.0;
-        const highFilter = ctx.createBiquadFilter(); highFilter.type = 'highshelf'; highFilter.frequency.value = 8000;
-        const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
-        const channelFader = ctx.createGain();
-        const auxSendGain = ctx.createGain(); auxSendGain.gain.value = 0;
-        const aux2SendGain = ctx.createGain(); aux2SendGain.gain.value = 0;
+        const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
+        const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
+        const masterAnalyser = ctx.createAnalyser(); masterAnalyser.fftSize = 2048; masterAnalyserRef.current = masterAnalyser;
         
-        inputGain.connect(lowFilter).connect(midFilter).connect(highFilter).connect(analyser).connect(channelFader).connect(mixBus);
-        analyser.connect(auxSendGain).connect(auxMasterGain);
-        analyser.connect(aux2SendGain).connect(aux2MasterGain);
-        
-        const deckGroup: DeckNodeGroup = { 
-          source: null, inputGain, lowFilter, midFilter, highFilter, analyser, channelFader, 
-          auxSendGain, aux2SendGain, eqBypass: false, eqValues: { L: 0, M: 0, H: 0 }
-        };
+        mixBus.connect(masterGain).connect(masterAnalyser);
 
-        if (id !== 'LIVE_MIC') {
-          const el = new Audio(); el.crossOrigin = "anonymous";
+        const auxMasterGain = ctx.createGain(); auxMasterGainRef.current = auxMasterGain;
+        const auxAnalyser = ctx.createAnalyser(); auxAnalyser.fftSize = 512; auxAnalyserRef.current = auxAnalyser;
+        auxMasterGain.connect(auxAnalyser);
+        
+        const aux2MasterGain = ctx.createGain(); aux2MasterGainRef.current = aux2MasterGain;
+        const aux2Analyser = ctx.createAnalyser(); aux2Analyser.fftSize = 512; aux2AnalyserRef.current = aux2Analyser;
+        aux2MasterGain.connect(aux2Analyser);
+
+        streamDestinations.current[0] = ctx.createMediaStreamDestination(); masterGain.connect(streamDestinations.current[0]);
+        streamDestinations.current[1] = ctx.createMediaStreamDestination(); auxMasterGain.connect(streamDestinations.current[1]);
+        streamDestinations.current[2] = ctx.createMediaStreamDestination(); aux2MasterGain.connect(streamDestinations.current[2]);
+
+        const masterMonitorDest = ctx.createMediaStreamDestination();
+        masterGain.connect(masterMonitorDest);
+        masterMonitorRef.current.srcObject = masterMonitorDest.stream;
+
+        const aux1MonitorDest = ctx.createMediaStreamDestination();
+        auxMasterGain.connect(aux1MonitorDest);
+        aux1MonitorRef.current.srcObject = aux1MonitorDest.stream;
+
+        const aux2MonitorDest = ctx.createMediaStreamDestination();
+        aux2MasterGain.connect(aux2MonitorDest);
+        aux2MonitorRef.current.srcObject = aux2MonitorDest.stream;
+
+        DECKS.forEach(id => {
+          const inputGain = ctx.createGain();
+          const lowFilter = ctx.createBiquadFilter(); lowFilter.type = 'lowshelf'; lowFilter.frequency.value = 100;
+          const midFilter = ctx.createBiquadFilter(); midFilter.type = 'peaking'; midFilter.frequency.value = 1000; midFilter.Q.value = 1.0;
+          const highFilter = ctx.createBiquadFilter(); highFilter.type = 'highshelf'; highFilter.frequency.value = 8000;
+          const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
+          const channelFader = ctx.createGain();
+          const auxSendGain = ctx.createGain(); auxSendGain.gain.value = 0;
+          const aux2SendGain = ctx.createGain(); aux2SendGain.gain.value = 0;
           
-          // Listeners for initial creation
-          el.onplay = updateGlobalPlayState;
-          el.onpause = updateGlobalPlayState;
+          inputGain.connect(lowFilter).connect(midFilter).connect(highFilter).connect(analyser).connect(channelFader).connect(mixBus);
+          analyser.connect(auxSendGain).connect(auxMasterGain);
+          analyser.connect(aux2SendGain).connect(aux2MasterGain);
+          
+          const deckGroup: DeckNodeGroup = { 
+            source: null, inputGain, lowFilter, midFilter, highFilter, analyser, channelFader, 
+            auxSendGain, aux2SendGain, eqBypass: false, eqValues: { L: 0, M: 0, H: 0 }
+          };
 
-          let url = RADIO_URLS.R1CV;
-          if (id === 'A') url = RADIO_URLS.OCA1;
-          if (id === 'RNE_EMISORAS') url = RADIO_URLS.R1CV;
-          if (id === 'C') url = RADIO_URLS.ONDA_CERO;
-          if (id === 'D') url = RADIO_URLS.R5;
-          if (id === 'E') url = RADIO_URLS.COPE;
-          if (id === 'F') url = RADIO_URLS.SER_PROVINCIAL;
-          if (RADIO_URLS[id as keyof typeof RADIO_URLS]) url = RADIO_URLS[id as keyof typeof RADIO_URLS];
+          if (id !== 'LIVE_MIC') {
+            const el = new Audio(); el.crossOrigin = "anonymous";
+            el.onplay = updateGlobalPlayState;
+            el.onpause = updateGlobalPlayState;
 
-          initHls(el, url, deckGroup, id);
-          deckGroup.source = ctx.createMediaElementSource(el);
-          deckGroup.source.connect(inputGain);
-          deckGroup.element = el;
-        }
-        decksRef.current.set(id, deckGroup);
-      });
+            let url = RADIO_URLS.R1CV;
+            if (id === 'A') url = RADIO_URLS.OCA1;
+            if (id === 'RNE_EMISORAS') url = RADIO_URLS.R1CV;
+            if (id === 'C') url = RADIO_URLS.ONDA_CERO;
+            if (id === 'D') url = RADIO_URLS.R5;
+            if (id === 'E') url = RADIO_URLS.COPE;
+            if (id === 'F') url = RADIO_URLS.SER_PROVINCIAL;
+            if (RADIO_URLS[id as keyof typeof RADIO_URLS]) url = RADIO_URLS[id as keyof typeof RADIO_URLS];
+
+            initHls(el, url, deckGroup, id);
+            deckGroup.source = ctx.createMediaElementSource(el);
+            deckGroup.source.connect(inputGain);
+            deckGroup.element = el;
+          }
+          decksRef.current.set(id, deckGroup);
+        });
+      } catch (e) {
+        console.error("Audio initialization failed", e);
+      }
     };
     initAudio();
   }, [initHls, updateGlobalPlayState]);
 
   const setOutputDevice = async (bus: 'MASTER' | 'AUX1' | 'AUX2', deviceId: string) => {
       const element = bus === 'MASTER' ? masterMonitorRef.current : bus === 'AUX1' ? aux1MonitorRef.current : aux2MonitorRef.current;
-      if ('setSinkId' in element) {
+      if (element && 'setSinkId' in element) {
           try {
               await (element as any).setSinkId(deviceId);
-              console.log(`${bus} output set to ${deviceId}`);
           } catch (e) {
               console.error(`Error setting sinkId for ${bus}`, e);
           }
-      } else {
-          console.warn("Browser does not support setSinkId");
       }
   };
 
@@ -283,8 +279,6 @@ export const useAudioMixer = () => {
             if(gainNode) gainNode.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05);
         }
     },
-    isLimiterActive, toggleLimiter: () => setIsLimiterActive(!isLimiterActive),
-    isCompressorActive, toggleCompressor: () => setIsCompressorActive(!isCompressorActive),
     recorders: recState,
     startRecording: (id: number) => {
       resumeContext(); const stream = streamDestinations.current[id]?.stream; if(!stream) return;
@@ -309,6 +303,6 @@ export const useAudioMixer = () => {
     },
     outputDevices,
     setOutputDevice,
-    isAnyPlaying // Exported state
+    isAnyPlaying
   };
 };
