@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b111a" />
     
-    <!-- Corrección de etiquetas depreciadas -->
+    <!-- Soporte para Web Apps -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit - Alicante" />
-    <title>ReVoxMix - Full Screen Broadcast</title>
+    <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit - Multi-Resolution Support" />
+    <title>ReVoxMix - Professional Mixer</title>
     
     <!-- SHIM PARA COMPATIBILIDAD CON VERCEL/GITHUB -->
     <script>
@@ -24,14 +24,13 @@
     <style>
       :root {
         --bg-main: #0b111a;
-        --fader-height: 150px;
       }
       
       html, body, #root {
         margin: 0;
         padding: 0;
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
         overflow: hidden;
         background-color: var(--bg-main);
         display: flex;
@@ -44,10 +43,9 @@
         user-select: none;
       }
 
-      /* ULTRA NARROW CLASSY FADER */
+      /* ULTRA NARROW CLASSY FADER - Dinámico */
       .fader-vertical {
         -webkit-appearance: none;
-        width: var(--fader-height); 
         background: transparent;
         cursor: pointer;
         height: 36px;
@@ -55,9 +53,9 @@
         transform-origin: center;
         margin: 0;
         position: absolute;
+        /* La anchura se controla vía JS por ResizeObserver */
       }
 
-      /* Canal de la pista más fino y profundo */
       .fader-vertical::-webkit-slider-runnable-track {
         width: 100%;
         height: 2px; 
@@ -67,21 +65,17 @@
         border: 1px solid #1e293b;
       }
 
-      /* Botón del fader: Más estrecho, elegante y metálico */
       .fader-vertical::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #475569;
-        height: 14px; /* Ancho visual (Muy estrecho) */
-        width: 32px;  /* Altura visual */
+        height: 14px; 
+        width: 32px;  
         border-radius: 1px;
-        
-        /* Acabado metálico con línea indicadora de neón fina */
         background: 
             linear-gradient(90deg, transparent 49%, #22d3ee 49%, #22d3ee 51%, transparent 51%),
             linear-gradient(180deg, #64748b 0%, #1e293b 45%, #0f172a 50%, #1e293b 55%, #475569 100%);
-            
         cursor: pointer;
-        margin-top: -15px; /* Centrado respecto al track de 2px */
+        margin-top: -15px; 
         box-shadow: 0 4px 8px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1);
         position: relative;
         z-index: 10;
@@ -93,7 +87,7 @@
         border-color: #22d3ee;
       }
 
-      /* MASTER FADER (RED CLASSY VERSION) */
+      /* MASTER FADER */
       .fader-master {
         -webkit-appearance: none;
         background: transparent;
@@ -114,7 +108,7 @@
       .fader-master::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #7f1d1d;
-        height: 18px; /* Más estrecho que antes */
+        height: 18px; 
         width: 44px;  
         border-radius: 2px;
         background: 
@@ -125,9 +119,18 @@
         box-shadow: 0 6px 12px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,0.2);
       }
 
-      ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+      /* Scrollbar Profesional */
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #080c14; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+      /* Animaciones de Entrada */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     </style>
     <script type="importmap">
     {
