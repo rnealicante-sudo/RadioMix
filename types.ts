@@ -1,5 +1,5 @@
 
-export type DeckId = 'LIVE_MIC' | 'MIC' | 'A' | 'RNE_EMISORAS' | 'C' | 'D' | 'E' | 'F' | 'RADIO_UMH' | 'ES_RADIO' | 'RADIO_MARCA' | 'RADIO_ESPANA';
+export type DeckId = 'LIVE_MIC' | 'MIC' | 'A' | 'RNE_EMISORAS' | 'C' | 'D' | 'E' | 'F' | 'ES_RADIO' | 'RADIO_MARCA' | 'RADIO_ESPANA';
 
 export type RecorderSource = 'MASTER' | 'AUX1' | 'AUX2';
 export type ExportFormat = 'MP3' | 'WEBM' | 'WAV' | 'OGG';
