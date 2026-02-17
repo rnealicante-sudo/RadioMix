@@ -10,6 +10,11 @@
     <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit - Alicante" />
     <title>ReVoxMix - Full Screen Broadcast</title>
     
+    <!-- SHIM PARA COMPATIBILIDAD CON VERCEL/GITHUB -->
+    <script>
+      window.process = window.process || { env: {} };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -37,10 +42,6 @@
         user-select: none;
       }
 
-      .animate-pulse, .active-glow, .fader-vertical {
-        will-change: transform, opacity, box-shadow;
-      }
-
       /* STANDARD CHANNEL FADER */
       .fader-vertical {
         -webkit-appearance: none;
@@ -63,29 +64,23 @@
         border: 1px solid #1e293b;
       }
 
-      /* DARK TECH CHANNEL FADER CAP */
       .fader-vertical::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #334155;
-        height: 22px; /* Visual Width */
-        width: 38px;  /* Visual Height */
+        height: 22px; 
+        width: 38px;  
         border-radius: 2px;
-        
-        /* Capas de fondo: Línea Indicadora > Textura de Agarre > Color Base */
         background: 
-            /* Línea Central Cian Brillante */
             linear-gradient(90deg, transparent 48%, #22d3ee 48%, #22d3ee 52%, transparent 52%),
-            /* Sutil gradiente metálico oscuro */
             linear-gradient(180deg, #334155 0%, #1e293b 40%, #0f172a 100%);
-            
         cursor: pointer;
-        margin-top: -9px; /* (4 - 22) / 2 = -9 */
+        margin-top: -9px; 
         box-shadow: 0 4px 6px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
         position: relative;
         z-index: 10;
       }
 
-      /* MASTER FADER (RED PROFESSIONAL STYLE) */
+      /* MASTER FADER */
       .fader-master {
         -webkit-appearance: none;
         background: transparent;
@@ -103,23 +98,17 @@
         border: none;
       }
 
-      /* RED TECH MASTER FADER CAP */
       .fader-master::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #7f1d1d;
-        height: 28px; /* Visual Width */
-        width: 50px;  /* Visual Height */
+        height: 28px; 
+        width: 50px;  
         border-radius: 3px;
-        
-        /* Capas de fondo: Línea Indicadora > Color Base */
         background: 
-            /* Línea Central Blanca Pura */
             linear-gradient(90deg, transparent 48%, #ffffff 48%, #ffffff 52%, transparent 52%),
-            /* Gradiente Rojo Profundo */
             linear-gradient(180deg, #ef4444 0%, #b91c1c 50%, #7f1d1d 100%);
-            
         cursor: pointer;
-        margin-top: 16px; /* (60 - 28) / 2 = 16 */
+        margin-top: 16px; 
         box-shadow: 0 5px 12px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.2);
         position: relative;
       }
