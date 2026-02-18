@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Mic, Square, RefreshCw, Activity, Zap, Waves, Settings2, Power } from 'lucide-react';
+import { Play, Pause, Square, RefreshCw, Activity, Zap, Waves, Settings2, Power } from 'lucide-react';
 import { MiniVisualizer } from './MiniVisualizer';
 import { DeckId, CrossfaderAssignment } from '../types';
 import { Knob } from './Knob';
@@ -22,8 +22,6 @@ interface DeckProps {
   assignment: CrossfaderAssignment;
   audioElement: HTMLAudioElement | null | undefined;
   analyser: AnalyserNode | null | undefined;
-  inputDevices?: MediaDeviceInfo[];
-  onMicSelect?: (deviceId: string) => void;
   isFullscreen?: boolean;
   bitrate?: number;
 }
@@ -31,9 +29,8 @@ interface DeckProps {
 export const Deck: React.FC<DeckProps> = ({ 
     id, onTogglePlay, onStop, onRefresh, onStreamChange, onTrimChange, trim,
     onVolumeChange, onAuxLevelChange, onEqChange, onToggleEq, audioElement, analyser,
-    inputDevices = [], onMicSelect, bitrate
+    bitrate
 }) => {
-  const isLiveMic = id === 'LIVE_MIC';
   const isOcasional = id === 'A';
   const isRneEmisoras = id === 'RNE_EMISORAS';
   const isSerProvincial = id === 'F';
@@ -95,7 +92,6 @@ export const Deck: React.FC<DeckProps> = ({
   };
 
   const getSubLabel = () => {
-      if (id === 'LIVE_MIC') return 'LIVE MIC';
       if (id === 'MIC') return 'R1 CV (RNE)';
       if (id === 'A') return 'RNE OCASIONAL';
       if (id === 'RNE_EMISORAS') return 'RNE CADENAS';
@@ -138,15 +134,15 @@ export const Deck: React.FC<DeckProps> = ({
     { name: 'OCA 6', url: "https://rnelivestream.rtve.es/rneoca/oca6/master.m3u8" },
   ];
 
-  const streamFormat = isLiveMic ? 'PCM/MIC' : (audioElement?.src?.includes('.m3u8') ? 'HLS/ADAPT' : 'MPEG/FIXED');
-  const labelColorClass = isLiveMic ? 'text-sky-400' : (isRne ? 'text-amber-500' : (isSerProvincial ? 'text-yellow-400' : 'text-cyan-400'));
+  const streamFormat = audioElement?.src?.includes('.m3u8') ? 'HLS/ADAPT' : 'MPEG/FIXED';
+  const labelColorClass = isRne ? 'text-amber-500' : (isSerProvincial ? 'text-yellow-400' : 'text-cyan-400');
 
   return (
-    <div className={`flex flex-col items-center border-r border-[#15283d] flex-1 min-w-[95px] h-full relative group pb-1 ${isLiveMic ? 'bg-[#162d42]' : 'bg-[#1e3a57]'}`}>
+    <div className={`flex flex-col items-center border-r border-[#15283d] flex-1 min-w-[95px] h-full relative group pb-1 bg-[#1e3a57]`}>
       
       {/* CABECERA */}
       <div className="w-full text-center py-1 bg-[#112233] border-b border-[#2d4b6b] mb-1 shrink-0">
-          <div className="text-[7px] font-bold uppercase tracking-widest text-slate-500 opacity-70">{isLiveMic ? 'HW INPUT' : 'NET STREAM'}</div>
+          <div className="text-[7px] font-bold uppercase tracking-widest text-slate-500 opacity-70">NET STREAM</div>
           <div className={`text-[9px] font-black tracking-tighter truncate px-1 ${labelColorClass}`}>
               {getSubLabel()}
           </div>
@@ -155,12 +151,7 @@ export const Deck: React.FC<DeckProps> = ({
       {/* SELECTOR SEÑAL */}
       <div className="w-full px-1 mb-2 mt-1 shrink-0">
         <div className="flex flex-col gap-1">
-            {isLiveMic ? (
-                <select onChange={(e) => onMicSelect?.(e.target.value)} className="w-full bg-[#0d1a25] text-[8px] text-sky-400 border border-sky-800/50 rounded px-1 py-1 outline-none font-bold appearance-none">
-                    <option value="default">MAIN MIC</option>
-                    {inputDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Input'}</option>)}
-                </select>
-            ) : (isOcasional || isRneEmisoras || isSerProvincial) ? (
+            {(isOcasional || isRneEmisoras || isSerProvincial) ? (
                 <select onChange={(e) => onStreamChange?.(e.target.value)} className="w-full bg-[#0d1a25] text-[8px] text-amber-500 border border-amber-800/50 rounded px-1 py-1 outline-none font-bold">
                     {(isOcasional ? rneOcasionalChannels : isRneEmisoras ? rneCadenasChannels : serProvincialChannels).map(c => <option key={c.url} value={c.url}>{c.name}</option>)}
                 </select>
@@ -169,20 +160,15 @@ export const Deck: React.FC<DeckProps> = ({
             )}
             
             <div className="flex gap-1">
-                {!isLiveMic && (
-                  <>
-                    <button onClick={onStop} className="flex-1 bg-[#2b4c6d] text-slate-300 border border-slate-600 rounded py-1 flex justify-center"><Square size={10} fill="currentColor" /></button>
-                    <button onClick={onTogglePlay} className={`flex-1 border rounded py-1 flex justify-center transition-all ${isPlaying ? 'bg-green-600 border-green-400 text-white shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-[#2b4c6d] border-slate-600 text-slate-200'}`}>{isPlaying ? <Pause size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}</button>
-                  </>
-                )}
-                {isLiveMic && <div className="w-full h-[18px] flex items-center justify-center bg-sky-900/40 rounded border border-sky-400/30"><Mic size={10} className="text-sky-400 animate-pulse" /></div>}
+                <button onClick={onStop} className="flex-1 bg-[#2b4c6d] text-slate-300 border border-slate-600 rounded py-1 flex justify-center"><Square size={10} fill="currentColor" /></button>
+                <button onClick={onTogglePlay} className={`flex-1 border rounded py-1 flex justify-center transition-all ${isPlaying ? 'bg-green-600 border-green-400 text-white shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-[#2b4c6d] border-slate-600 text-slate-200'}`}>{isPlaying ? <Pause size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}</button>
             </div>
         </div>
       </div>
 
       {/* TRIM */}
       <div className="mb-2 w-full flex justify-center border-b border-slate-700/50 pb-2 bg-[#1b324a] shrink-0">
-          <Knob value={trim} onChange={(e) => onTrimChange(parseFloat(e.target.value))} min={0.1} max={3.0} label="TRIM" colorClass={isLiveMic ? "bg-sky-400" : "bg-cyan-400"} />
+          <Knob value={trim} onChange={(e) => onTrimChange(parseFloat(e.target.value))} min={0.1} max={3.0} label="TRIM" colorClass="bg-cyan-400" />
       </div>
 
       {/* EQ SECTION (ACTUALIZADA CON BYPASS) */}
@@ -273,7 +259,7 @@ export const Deck: React.FC<DeckProps> = ({
          </div>
       </div>
              
-      <div className={`w-[90%] border text-[9px] font-mono text-center py-0.5 rounded-sm mt-1 bg-black shrink-0 ${isLiveMic ? 'border-sky-800 text-sky-400' : (isRne ? 'border-amber-800 text-amber-500' : 'border-cyan-800 text-cyan-400')}`}>
+      <div className={`w-[90%] border text-[9px] font-mono text-center py-0.5 rounded-sm mt-1 bg-black shrink-0 ${isRne ? 'border-amber-800 text-amber-500' : 'border-cyan-800 text-cyan-400'}`}>
           {(volume * 10).toFixed(1)} dB
       </div>
 

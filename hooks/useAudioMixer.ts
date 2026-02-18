@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DeckId, CrossfaderAssignment, RecorderState, ExportFormat } from '../types';
 
-const DECKS: DeckId[] = ['LIVE_MIC', 'MIC', 'A', 'RNE_EMISORAS', 'ES_RADIO', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'D', 'E', 'F'];
+const DECKS: DeckId[] = ['MIC', 'A', 'RNE_EMISORAS', 'ES_RADIO', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'D', 'E', 'F'];
 
 const RADIO_URLS = {
   R1CV: "https://rnelivestream.rtve.es/rne1/val/master.m3u8",
@@ -133,7 +133,6 @@ export const useAudioMixer = () => {
   useEffect(() => {
     const getDevices = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }); // Solicitar permiso para ver labels
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter(d => d.kind === 'audiooutput');
         setOutputDevices(outputs);
@@ -216,26 +215,24 @@ export const useAudioMixer = () => {
           auxSendGain, aux2SendGain, eqBypass: false, eqValues: { L: 0, M: 0, H: 0 }
         };
 
-        if (id !== 'LIVE_MIC') {
-          const el = new Audio(); el.crossOrigin = "anonymous";
-          
-          el.onplay = updateGlobalPlayState;
-          el.onpause = updateGlobalPlayState;
+        const el = new Audio(); el.crossOrigin = "anonymous";
+        el.onplay = updateGlobalPlayState;
+        el.onpause = updateGlobalPlayState;
 
-          let url = RADIO_URLS.R1CV;
-          if (id === 'A') url = RADIO_URLS.OCA1;
-          if (id === 'RNE_EMISORAS') url = RADIO_URLS.R1CV;
-          if (id === 'C') url = RADIO_URLS.ONDA_CERO;
-          if (id === 'D') url = RADIO_URLS.R5;
-          if (id === 'E') url = RADIO_URLS.COPE;
-          if (id === 'F') url = RADIO_URLS.SER_PROVINCIAL;
-          if (RADIO_URLS[id as keyof typeof RADIO_URLS]) url = RADIO_URLS[id as keyof typeof RADIO_URLS];
+        let url = RADIO_URLS.R1CV;
+        if (id === 'A') url = RADIO_URLS.OCA1;
+        if (id === 'RNE_EMISORAS') url = RADIO_URLS.R1CV;
+        if (id === 'C') url = RADIO_URLS.ONDA_CERO;
+        if (id === 'D') url = RADIO_URLS.R5;
+        if (id === 'E') url = RADIO_URLS.COPE;
+        if (id === 'F') url = RADIO_URLS.SER_PROVINCIAL;
+        if (RADIO_URLS[id as keyof typeof RADIO_URLS]) url = RADIO_URLS[id as keyof typeof RADIO_URLS];
 
-          initHls(el, url, deckGroup, id);
-          deckGroup.source = ctx.createMediaElementSource(el);
-          deckGroup.source.connect(inputGain);
-          deckGroup.element = el;
-        }
+        initHls(el, url, deckGroup, id);
+        deckGroup.source = ctx.createMediaElementSource(el);
+        deckGroup.source.connect(inputGain);
+        deckGroup.element = el;
+        
         decksRef.current.set(id, deckGroup);
       });
     };
@@ -318,15 +315,6 @@ export const useAudioMixer = () => {
     clearRecorder: (id: number) => setRecState(p => p.map(r => r.id === id ? {...r, chunks: [], time: 0} : r)),
     exportRecording: (id: number) => {}, 
     setFormat: (id: number, f: ExportFormat) => setRecState(p => p.map(r => r.id === id ? {...r, format: f} : r)),
-    setupLiveMic: async (deviceId: string) => {
-      resumeContext(); const ctx = audioContextRef.current; if (!ctx) return;
-      const deck = decksRef.current.get('LIVE_MIC'); if (!deck) return;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: deviceId !== 'default' ? { exact: deviceId } : undefined } });
-        const source = ctx.createMediaStreamSource(stream); source.connect(deck.inputGain);
-        deck.source = source; deck.micStream = stream;
-      } catch (err) { console.error(err); }
-    },
     refreshAllStreams,
     outputDevices,
     setOutputDevice,

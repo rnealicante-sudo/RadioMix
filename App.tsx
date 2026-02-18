@@ -14,7 +14,7 @@ export default function App() {
   const { 
     togglePlay, stopTrack, setDeckTrim, setDeckVolume, setMasterVolume, setDeckEq, toggleDeckEq,
     getMasterAnalyser, getAuxAnalyser, getAux2Analyser, getDeckAnalyser, getDeckElement,
-    setupLiveMic, allDeckIds, decksBitrate, activeStation,
+    allDeckIds, decksBitrate, activeStation,
     isLimiterActive, toggleLimiter, isCompressorActive, toggleCompressor, 
     recorders, startRecording, stopRecording, clearRecorder, exportRecording, setFormat,
     changeStream, setAuxLevel,
@@ -108,7 +108,6 @@ export default function App() {
                                 onToggleEq={() => toggleDeckEq(deckId)}
                                 bitrate={decksBitrate[deckId]} assignment="THRU" onAssignmentChange={() => {}}
                                 audioElement={getDeckElement(deckId)} analyser={getDeckAnalyser(deckId)} 
-                                onMicSelect={(deviceId) => setupLiveMic(deviceId)}
                             />
                         ))}
                     </div>
