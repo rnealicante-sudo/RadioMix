@@ -5,7 +5,7 @@ import { Visualizer } from './components/Visualizer';
 import { Recorder } from './components/Recorder';
 import { useAudioMixer } from './hooks/useAudioMixer';
 import { fetchAlicanteNews, fetchAlicanteWeather, NewsItem, WeatherData } from './services/geminiService';
-import { Zap, ShieldAlert, RefreshCw, Thermometer, Radio, Clock, Volume2, Maximize, Minimize, Wifi, Settings } from 'lucide-react';
+import { Zap, ShieldAlert, RefreshCw, Thermometer, Radio, Clock, Volume2, Maximize, Minimize, Wifi, Settings, Activity } from 'lucide-react';
 import { DeckId } from './types';
 import { NewsTicker as NewsTickerComponent } from './components/NewsTicker';
 import { Knob } from './components/Knob';
@@ -20,6 +20,7 @@ export default function App() {
     changeStream, setAuxLevel,
     outputDevices, setOutputDevice, setAuxMasterVolume,
     refreshAllStreams,
+    setSchedule,
     isAnyPlaying
   } = useAudioMixer();
 
@@ -134,10 +135,31 @@ export default function App() {
                                     <span className="text-[9px] font-black uppercase tracking-widest">RELOAD ALL</span>
                                 </button>
 
+                                {/* DYNAMICS SECTION */}
+                                <div className="bg-[#111a26] rounded border border-slate-800/50 p-2 mb-1">
+                                    <span className="text-[8px] font-bold text-slate-500 uppercase block mb-1.5 text-center tracking-wider">DYNAMICS</span>
+                                    <div className="flex gap-1">
+                                        <button 
+                                            onClick={toggleCompressor}
+                                            className={`flex-1 flex flex-col items-center justify-center py-1.5 rounded border transition-all ${isCompressorActive ? 'bg-cyan-900/30 border-cyan-500 text-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.3)]' : 'bg-[#0f172a] border-slate-700 text-slate-600'}`}
+                                        >
+                                            <Activity size={10} className="mb-0.5" />
+                                            <span className="text-[7px] font-black">COMP</span>
+                                        </button>
+                                        <button 
+                                            onClick={toggleLimiter}
+                                            className={`flex-1 flex flex-col items-center justify-center py-1.5 rounded border transition-all ${isLimiterActive ? 'bg-red-900/30 border-red-500 text-red-400 shadow-[0_0_8px_rgba(248,113,113,0.3)]' : 'bg-[#0f172a] border-slate-700 text-slate-600'}`}
+                                        >
+                                            <ShieldAlert size={10} className="mb-0.5" />
+                                            <span className="text-[7px] font-black">LIMIT</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div className="h-[1px] bg-slate-800 w-full mb-1"></div>
 
                                 {/* MASTER FADER BLOCK REDISEÑADO - REGLA EN MEDIO */}
-                                <div className="flex flex-col bg-[#111a26] rounded border border-slate-800/50 p-2 flex-1 min-h-[180px]">
+                                <div className="flex flex-col bg-[#1e3a57] rounded border border-slate-800/50 p-2 flex-1 min-h-[180px]">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-[9px] font-black text-white bg-red-600 px-1 rounded">MASTER</span>
                                         <select 
@@ -285,7 +307,8 @@ export default function App() {
                             onExport={() => exportRecording(2)} 
                             onFormatChange={(f) => setFormat(2, f)} 
                             onClear={() => clearRecorder(2)} 
-                            analyser={getAux2Analyser()} 
+                            analyser={getAux2Analyser()}
+                            onScheduleChange={(start, end) => setSchedule(2, start, end)}
                         />
                     </div>
                 </div>

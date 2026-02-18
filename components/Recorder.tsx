@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Circle, Square, Download, Trash2, CalendarDays } from 'lucide-react';
+import React, { useState } from 'react';
+import { Circle, Square, Download, Trash2, Calendar, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { RecorderState, ExportFormat } from '../types';
 import { MiniVisualizer } from './MiniVisualizer';
 
@@ -16,17 +16,121 @@ interface RecorderProps {
 }
 
 export const Recorder: React.FC<RecorderProps> = ({ state, onStart, onStop, onExport, onClear, onFormatChange, onScheduleChange, analyser }) => {
+  const isAux2 = state.source === 'AUX2';
+  const label = state.source === 'MASTER' ? 'MASTER' : state.source === 'AUX1' ? 'AUX 1' : 'AUX 2';
+  
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState('12:00');
+  const [endTime, setEndTime] = useState('13:00');
+
   const formatTime = (s: number) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const isAux2 = state.source === 'AUX2';
-  const label = state.source === 'MASTER' ? 'MASTER' : state.source === 'AUX1' ? 'AUX 1' : 'AUX 2';
+  // Calendar Helpers
+  const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay(); // 0 is Sunday
+  
+  const handleDayClick = (day: number) => {
+      const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+      setSelectedDate(newDate);
+  };
+
+  const saveSchedule = () => {
+      if (selectedDate && onScheduleChange) {
+          const s = new Date(selectedDate);
+          const [sh, sm] = startTime.split(':').map(Number);
+          s.setHours(sh, sm);
+          
+          const e = new Date(selectedDate);
+          const [eh, em] = endTime.split(':').map(Number);
+          e.setHours(eh, em);
+          
+          onScheduleChange(s.toISOString(), e.toISOString());
+          setShowCalendar(false);
+      }
+  };
+
+  const renderCalendar = () => {
+    const totalDays = daysInMonth(viewDate);
+    const startDay = firstDayOfMonth(viewDate);
+    const days = [];
+    
+    // Empty cells
+    for (let i = 0; i < startDay; i++) days.push(<div key={`empty-${i}`} className="w-5 h-5"></div>);
+    
+    // Days
+    for (let d = 1; d <= totalDays; d++) {
+        const isSelected = selectedDate?.getDate() === d && selectedDate?.getMonth() === viewDate.getMonth();
+        days.push(
+            <button 
+                key={d} 
+                onClick={() => handleDayClick(d)}
+                className={`w-6 h-6 flex items-center justify-center text-[9px] rounded-sm transition-colors ${isSelected ? 'bg-amber-600 text-white font-bold' : 'hover:bg-slate-700 text-slate-300'}`}
+            >
+                {d}
+            </button>
+        );
+    }
+
+    return (
+        <div className="absolute bottom-[105%] left-1/2 -translate-x-1/2 z-50 bg-[#0a121d] border border-amber-900/50 rounded shadow-2xl p-2 w-[200px]">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
+                <span className="text-[10px] font-bold text-amber-500 uppercase">Schedule Rec</span>
+                <button onClick={() => setShowCalendar(false)}><X size={10} className="text-slate-500 hover:text-white" /></button>
+            </div>
+
+            {/* Month Nav */}
+            <div className="flex justify-between items-center mb-2 px-1">
+                <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))}><ChevronLeft size={10} /></button>
+                <span className="text-[9px] font-black text-slate-300 uppercase">
+                    {viewDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </span>
+                <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))}><ChevronRight size={10} /></button>
+            </div>
+
+            {/* Grid */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+                {['S','M','T','W','T','F','S'].map((d,i) => <div key={i} className="text-[7px] text-center text-slate-500 font-bold">{d}</div>)}
+                {days}
+            </div>
+
+            {/* Time Inputs */}
+            {selectedDate && (
+                <div className="flex flex-col gap-1 bg-[#050910] p-1 rounded mb-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[8px] text-slate-400">Start:</span>
+                        <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="bg-transparent text-[9px] text-amber-400 outline-none w-[45px]" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-[8px] text-slate-400">End:</span>
+                        <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="bg-transparent text-[9px] text-amber-400 outline-none w-[45px]" />
+                    </div>
+                </div>
+            )}
+
+            {/* Actions */}
+            <button 
+                onClick={saveSchedule}
+                disabled={!selectedDate}
+                className="w-full bg-amber-700 hover:bg-amber-600 text-white text-[9px] font-bold py-1 rounded flex items-center justify-center gap-1 disabled:opacity-50"
+            >
+                <Check size={10} /> Confirm
+            </button>
+        </div>
+    );
+  };
 
   return (
-    <div className={`bg-[#0d1a29] border ${state.isRecording ? 'border-red-600 shadow-[0_0_10px_rgba(220,38,38,0.2)]' : isAux2 ? 'border-amber-900/30' : 'border-slate-800/40'} rounded p-1.5 flex flex-col gap-1 w-full transition-all`}>
+    <div className={`relative bg-[#0d1a29] border ${state.isRecording ? 'border-red-600 shadow-[0_0_10px_rgba(220,38,38,0.2)]' : isAux2 ? 'border-amber-900/30' : 'border-slate-800/40'} rounded p-1.5 flex flex-col gap-1 w-full transition-all group`}>
+      
+      {showCalendar && renderCalendar()}
+
       {/* Header */}
       <div className="flex justify-between items-center border-b border-slate-800/50 pb-1">
         <div className="flex flex-col">
@@ -51,33 +155,27 @@ export const Recorder: React.FC<RecorderProps> = ({ state, onStart, onStop, onEx
         </div>
       </div>
 
-      {/* Signal Meter (Inside Recorder Unit - Bigger Height) */}
+      {/* Signal Meter */}
       <div className="w-full h-[10px] bg-black/50 rounded-[1px] overflow-hidden mt-0.5 mb-1 opacity-90 border border-slate-900/50">
          <MiniVisualizer analyser={analyser} width={100} height={10} segmentCount={20} orientation="horizontal" />
       </div>
 
-      {/* Scheduler (Solo para Aux 2) */}
+      {/* Scheduler Toggle (AUX 2 Only) */}
       {isAux2 && onScheduleChange && (
-        <div className="bg-black/30 border border-amber-900/20 rounded p-1 flex items-center justify-between gap-1 scale-[0.9] origin-left">
-            <CalendarDays size={9} className="text-amber-700" />
-            <div className="flex gap-1 items-center">
-                <input 
-                    type="time" 
-                    value={state.scheduledStart || ''} 
-                    onChange={(e) => onScheduleChange(e.target.value, state.scheduledEnd || '')}
-                    className="bg-[#050910] text-[8px] text-amber-600 border border-slate-800 rounded outline-none w-[35px] px-0.5"
-                />
-                <input 
-                    type="time" 
-                    value={state.scheduledEnd || ''} 
-                    onChange={(e) => onScheduleChange(state.scheduledStart || '', e.target.value)}
-                    className="bg-[#050910] text-[8px] text-amber-600 border border-slate-800 rounded outline-none w-[35px] px-0.5"
-                />
-            </div>
-        </div>
+          <div className="flex items-center justify-between bg-black/30 border border-amber-900/20 rounded px-1 py-0.5 mb-1">
+             <div className="flex items-center gap-1">
+                 <Calendar size={9} className="text-amber-700" />
+                 <span className="text-[7px] text-amber-600 font-bold uppercase">
+                     {state.scheduledStart ? new Date(state.scheduledStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'OFF'}
+                 </span>
+             </div>
+             <button onClick={() => setShowCalendar(true)} className="text-[7px] bg-amber-900/20 hover:bg-amber-900/40 text-amber-500 px-1 rounded border border-amber-900/30">
+                 SET
+             </button>
+          </div>
       )}
 
-      {/* Botones principales */}
+      {/* Main Buttons */}
       <div className="flex flex-col gap-1">
         {!state.isRecording ? (
           <button 

@@ -16,7 +16,7 @@ const RADIO_URLS = {
   SER_PROVINCIAL: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ALICANTEAAC.aac",
   OCA1: "https://rnelivestream.rtve.es/rneoca/oca1/master.m3u8",
   ES_RADIO: "https://sonic.mediatelekom.net/8274/stream",
-  RADIO_MARCA: "http://relay.stream.enacast-cloud.com:8000/marcalinkdelegaciones256.mp3",
+  RADIO_MARCA: "https://27913.live.streamtheworld.com/RADIOMARCA_VALENCIA.mp3",
   RADIO_ESPANA: "https://stream-151.zeno.fm/7ywx2u45vv8uv?zt=eyJhbGciOiJIUzI1NiJ9.eyJzdHJlYW0iOiI3eXd4MnU0NXZ2OHV2IiwiaG9zdCI6InN0cmVhbS0xNTEuemVuby5mbSIsInJ0dGwiOjUsImp0aSI6IjlEUENiQUlyUWJLSEk5RHhtZUtYVnciLCJpYXQiOjE3NzA0NTY1ODAsImV4cCI6MTc3MDQ1NjY0MH0.EJffqB_xW6mze4duK8MCJLAw9DM8twedeofwroZzB2s",
 };
 
@@ -49,14 +49,19 @@ interface DeckNodeGroup {
 
 export const useAudioMixer = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
+  
+  // Nodes
+  const mixBusRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+  
   const auxMasterGainRef = useRef<GainNode | null>(null);
   const aux2MasterGainRef = useRef<GainNode | null>(null);
   const masterAnalyserRef = useRef<AnalyserNode | null>(null);
   const auxAnalyserRef = useRef<AnalyserNode | null>(null);
   const aux2AnalyserRef = useRef<AnalyserNode | null>(null);
   
-  const mixBusRef = useRef<GainNode | null>(null);
   const decksRef = useRef<Map<DeckId, DeckNodeGroup>>(new Map());
 
   // Monitor Elements (Hidden Audio Elements for Routing)
@@ -144,20 +149,40 @@ export const useAudioMixer = () => {
     navigator.mediaDevices.ondevicechange = getDevices;
   }, []);
 
+  // Initialize Audio Context and Nodes
   useEffect(() => {
     const initAudio = async () => {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContextClass(); audioContextRef.current = ctx;
 
       const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
+      
+      // Initialize Dynamics Nodes (Disconnected initially)
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.005;
+      compressor.release.value = 0.25;
+      compressorRef.current = compressor;
+
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1.0;
+      limiter.knee.value = 0.0;
+      limiter.ratio.value = 20.0; // High ratio behaves like a limiter
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.1;
+      limiterRef.current = limiter;
+
       const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
-      // Faster FFT size for Master visualizer responsiveness
+      
       const masterAnalyser = ctx.createAnalyser(); 
       masterAnalyser.fftSize = 1024; 
       masterAnalyser.smoothingTimeConstant = 0.1;
       masterAnalyserRef.current = masterAnalyser;
       
-      mixBus.connect(masterGain).connect(masterAnalyser); 
+      // Note: Signal chain connection is handled in a separate useEffect based on flags
+      masterGain.connect(masterAnalyser); 
 
       const auxMasterGain = ctx.createGain(); auxMasterGainRef.current = auxMasterGain;
       const auxAnalyser = ctx.createAnalyser(); 
@@ -197,7 +222,6 @@ export const useAudioMixer = () => {
         const midFilter = ctx.createBiquadFilter(); midFilter.type = 'peaking'; midFilter.frequency.value = 1000; midFilter.Q.value = 1.0;
         const highFilter = ctx.createBiquadFilter(); highFilter.type = 'highshelf'; highFilter.frequency.value = 8000;
         
-        // Use a smaller FFT size for deck meters to ensure zero visual lag
         const analyser = ctx.createAnalyser(); 
         analyser.fftSize = 256; 
         analyser.smoothingTimeConstant = 0.1;
@@ -238,6 +262,32 @@ export const useAudioMixer = () => {
     };
     initAudio();
   }, [initHls, updateGlobalPlayState]);
+
+  // Routing Effect: Reconnects graph when dynamics settings change
+  useEffect(() => {
+    if (!mixBusRef.current || !masterGainRef.current || !compressorRef.current || !limiterRef.current) return;
+    
+    // Disconnect everything first to avoid errors/doubling
+    try { mixBusRef.current.disconnect(); } catch (e) {}
+    try { compressorRef.current.disconnect(); } catch (e) {}
+    try { limiterRef.current.disconnect(); } catch (e) {}
+
+    // Rebuild chain: MixBus -> [Compressor?] -> [Limiter?] -> MasterGain
+    let currentNode: AudioNode = mixBusRef.current;
+
+    if (isCompressorActive) {
+      currentNode.connect(compressorRef.current);
+      currentNode = compressorRef.current;
+    }
+
+    if (isLimiterActive) {
+        currentNode.connect(limiterRef.current);
+        currentNode = limiterRef.current;
+    }
+
+    currentNode.connect(masterGainRef.current);
+
+  }, [isCompressorActive, isLimiterActive]);
 
   const setOutputDevice = async (bus: 'MASTER' | 'AUX1' | 'AUX2', deviceId: string) => {
       const element = bus === 'MASTER' ? masterMonitorRef.current : bus === 'AUX1' ? aux1MonitorRef.current : aux2MonitorRef.current;
@@ -315,6 +365,7 @@ export const useAudioMixer = () => {
     clearRecorder: (id: number) => setRecState(p => p.map(r => r.id === id ? {...r, chunks: [], time: 0} : r)),
     exportRecording: (id: number) => {}, 
     setFormat: (id: number, f: ExportFormat) => setRecState(p => p.map(r => r.id === id ? {...r, format: f} : r)),
+    setSchedule: (id: number, start: string, end: string) => setRecState(p => p.map(r => r.id === id ? {...r, scheduledStart: start, scheduledEnd: end} : r)),
     refreshAllStreams,
     outputDevices,
     setOutputDevice,

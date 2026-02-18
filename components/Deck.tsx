@@ -220,8 +220,26 @@ export const Deck: React.FC<DeckProps> = ({
       {/* AUX KEYS */}
       <div className="w-full px-2 py-2 flex flex-col gap-1.5 bg-[#0a1520] border-b border-[#1a2e45] shrink-0">
           <div className="flex w-full gap-1">
-              <button onClick={() => toggleAux(1)} className={`flex-1 h-6 rounded-sm border text-[8px] font-black transition-all ${aux1On ? 'bg-green-600 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>AUX 1</button>
-              <button onClick={() => toggleAux(2)} className={`flex-1 h-6 rounded-sm border text-[8px] font-black transition-all ${aux2On ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(217,119,6,0.6)]' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>AUX 2</button>
+              <button 
+                onClick={() => toggleAux(1)} 
+                className={`flex-1 h-6 rounded-sm border text-[8px] font-black transition-all ${
+                  aux1On 
+                    ? 'bg-green-600 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.6)]' 
+                    : 'bg-[#06180a] border-[#0f2e16] text-[#15803d] hover:text-[#22c55e] hover:bg-[#0a2612]'
+                }`}
+              >
+                AUX 1
+              </button>
+              <button 
+                onClick={() => toggleAux(2)} 
+                className={`flex-1 h-6 rounded-sm border text-[8px] font-black transition-all ${
+                  aux2On 
+                    ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(217,119,6,0.6)]' 
+                    : 'bg-[#180d05] border-[#2e1808] text-[#b45309] hover:text-[#f59e0b] hover:bg-[#261408]'
+                }`}
+              >
+                AUX 2
+              </button>
           </div>
       </div>
 
