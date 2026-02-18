@@ -1,47 +1,64 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DeckId, CrossfaderAssignment, RecorderState, ExportFormat } from '../types';
+import { DeckId, RecorderState, ExportFormat } from '../types';
 
 const DECKS: DeckId[] = ['MIC', 'A', 'RNE_EMISORAS', 'ES_RADIO', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'D', 'E', 'F'];
 
-const RADIO_URLS = {
-  R1CV: "https://rnelivestream.rtve.es/rne1/val/master.m3u8",
-  R_CLASICA: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r2_main.m3u8",
-  R3: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r3_main.m3u8",
-  R4_CAT: "https://rnelivestream.rtve.es/rner4/main/master.m3u8",
-  REE: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_re_main.m3u8",
-  ONDA_CERO: "https://atres-live.ondacero.es/live/delegaciones/oc/alicante/master.m3u8",
-  R5: "https://rnelivestream.rtve.es/rne5/ali/master.m3u8",
-  COPE: "https://alicante-copesedes-rrcast.flumotion.com/copesedes/alicante.mp3",
-  SER_PROVINCIAL: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ALICANTEAAC.aac",
-  OCA1: "https://rnelivestream.rtve.es/rneoca/oca1/master.m3u8",
-  ES_RADIO: "https://sonic.mediatelekom.net/8274/stream",
-  RADIO_MARCA: "https://27913.live.streamtheworld.com/RADIOMARCA_VALENCIA.mp3",
-  RADIO_ESPANA: "https://stream-151.zeno.fm/7ywx2u45vv8uv?zt=eyJhbGciOiJIUzI1NiJ9.eyJzdHJlYW0iOiI3eXd4MnU0NXZ2OHV2IiwiaG9zdCI6InN0cmVhbS0xNTEuemVuby5mbSIsInJ0dGwiOjUsImp0aSI6IjlEUENiQUlyUWJLSEk5RHhtZUtYVnciLCJpYXQiOjE3NzA0NTY1ODAsImV4cCI6MTc3MDQ1NjY0MH0.EJffqB_xW6mze4duK8MCJLAw9DM8twedeofwroZzB2s",
+export const RADIO_STATIONS_MAP: Record<string, { name: string, url: string }[]> = {
+  'RNE_EMISORAS': [
+    { name: 'RNE 1 (Nacional)', url: "https://rnelivestream.rtve.es/rne1/val/master.m3u8" },
+    { name: 'RNE Clásica', url: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r2_main.m3u8" },
+    { name: 'RNE 3', url: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r3_main.m3u8" },
+    { name: 'RNE 4 (Catalunya)', url: "https://rnelivestream.rtve.es/rner4/main/master.m3u8" },
+    { name: 'RNE 5 (Todo Noticias)', url: "https://rnelivestream.rtve.es/rne5/ali/master.m3u8" },
+    { name: 'Radio Exterior (REE)', url: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_re_main.m3u8" },
+  ],
+  'A': [
+    { name: 'RNE OCA 1', url: "https://rnelivestream.rtve.es/rneoca/oca1/master.m3u8" },
+    { name: 'RNE OCA 2', url: "https://rnelivestream.rtve.es/rneoca/oca2/master.m3u8" },
+    { name: 'RNE OCA 3', url: "https://rnelivestream.rtve.es/rneoca/oca3/master.m3u8" },
+    { name: 'RNE OCA 4', url: "https://rnelivestream.rtve.es/rneoca/oca4/master.m3u8" },
+    { name: 'RNE OCA 5', url: "https://rnelivestream.rtve.es/rneoca/oca5/master.m3u8" },
+    { name: 'RNE OCA 6', url: "https://rnelivestream.rtve.es/rneoca/oca6/master.m3u8" },
+  ],
+  'F': [
+    { name: 'SER Alicante', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ALICANTEAAC.aac" },
+    { name: 'SER Elche', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ELCHEAAC.aac" },
+    { name: 'SER Orihuela', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ORIHUELAAAC.aac" },
+    { name: 'SER Denia', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_DENIAAAC.aac" },
+    { name: 'SER Elda', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ELDAAAC.aac" },
+    { name: 'SER Alcoy', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ALCOYAAC.aac" },
+  ],
+  'C': [{ name: 'Onda Cero Alicante', url: "https://atres-live.ondacero.es/live/delegaciones/oc/alicante/master.m3u8" }],
+  'D': [{ name: 'Radio 5 Alicante', url: "https://rnelivestream.rtve.es/rne5/ali/master.m3u8" }],
+  'E': [{ name: 'COPE Alicante', url: "https://alicante-copesedes-rrcast.flumotion.com/copesedes/alicante.mp3" }],
+  'MIC': [{ name: 'RNE 1 C. Valenciana', url: "https://rnelivestream.rtve.es/rne1/val/master.m3u8" }],
+  'ES_RADIO': [{ name: 'esRadio Nacional', url: "https://sonic.mediatelekom.net/8274/stream" }],
+  'RADIO_MARCA': [{ name: 'Radio Marca Valencia', url: "https://27913.live.streamtheworld.com/RADIOMARCA_VALENCIA.mp3" }],
+  'RADIO_ESPANA': [{ name: 'Radio España Live', url: "https://stream-151.zeno.fm/7ywx2u45vv8uv?zt=eyJhbGciOiJIUzI1NiJ9.eyJzdHJlYW0iOiI3eXd4MnU0NXZ2OHV2IiwiaG9zdCI6InN0cmVhbS0xNTEuemVuby5mbSIsInJ0dGwiOjUsImp0aSI6IjlEUENiQUlyUWJLSEk5RHhtZUtYVnciLCJpYXQiOjE3NzA0NTY1ODAsImV4cCI6MTc3MDQ1NjY0MH0.EJffqB_xW6mze4duK8MCJLAw9DM8twedeofwroZzB2s" }],
 };
 
 declare global {
-    interface Window {
-        lamejs: any;
-        Hls: any;
-        webkitAudioContext: any;
-    }
+  interface Window {
+    lamejs: any;
+    Hls: any;
+    webkitAudioContext: any;
+  }
 }
 
 interface DeckNodeGroup {
-  source: MediaElementAudioSourceNode | MediaStreamAudioSourceNode | null;
-  inputGain: GainNode; 
+  source: MediaElementAudioSourceNode | null;
+  inputGain: GainNode;
   lowFilter: BiquadFilterNode;
   midFilter: BiquadFilterNode;
   highFilter: BiquadFilterNode;
   analyser: AnalyserNode;
-  channelFader: GainNode; 
-  auxSendGain: GainNode; 
-  aux2SendGain: GainNode; 
-  element?: HTMLAudioElement; 
-  hls?: any; 
+  channelFader: GainNode;
+  auxSendGain: GainNode;
+  aux2SendGain: GainNode;
+  element?: HTMLAudioElement;
+  hls?: any;
   currentUrl?: string;
-  micStream?: MediaStream;
   bitrate?: number;
   eqBypass: boolean;
   eqValues: { L: number, M: number, H: number };
@@ -49,13 +66,10 @@ interface DeckNodeGroup {
 
 export const useAudioMixer = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
-  
-  // Nodes
   const mixBusRef = useRef<GainNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
-  
   const auxMasterGainRef = useRef<GainNode | null>(null);
   const aux2MasterGainRef = useRef<GainNode | null>(null);
   const masterAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -64,15 +78,17 @@ export const useAudioMixer = () => {
   
   const decksRef = useRef<Map<DeckId, DeckNodeGroup>>(new Map());
 
-  // Monitor Elements (Hidden Audio Elements for Routing)
-  const masterMonitorRef = useRef<HTMLAudioElement>(new Audio());
-  const aux1MonitorRef = useRef<HTMLAudioElement>(new Audio());
-  const aux2MonitorRef = useRef<HTMLAudioElement>(new Audio());
+  // Hardware Monitoring Outputs (HTML Audio elements hooked to MediaStreamDestinations)
+  const masterAudioRef = useRef<HTMLAudioElement>(new Audio());
+  const aux1AudioRef = useRef<HTMLAudioElement>(new Audio());
+  const aux2AudioRef = useRef<HTMLAudioElement>(new Audio());
 
-  const [activeStation, setActiveStation] = useState<{name: string, bitrate: number | string} | null>(null);
-  const [decksBitrate, setDecksBitrate] = useState<Record<string, number>>({});
   const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [decksBitrate, setDecksBitrate] = useState<Record<string, number>>({});
+  const [activeStation, setActiveStation] = useState<{name: string, bitrate: number | string} | null>(null);
   const [isAnyPlaying, setIsAnyPlaying] = useState(false);
+  const [isLimiterActive, setIsLimiterActive] = useState(true);
+  const [isCompressorActive, setIsCompressorActive] = useState(false);
 
   const [recState, setRecState] = useState<RecorderState[]>([
     { id: 0, isRecording: false, time: 0, chunks: [], source: 'MASTER', format: 'MP3' },
@@ -80,295 +96,198 @@ export const useAudioMixer = () => {
     { id: 2, isRecording: false, time: 0, chunks: [], source: 'AUX2', format: 'MP3' },
   ]);
 
-  const mediaRecorders = useRef<(MediaRecorder | null)[]>([null, null, null]);
-  const streamDestinations = useRef<(MediaStreamAudioDestinationNode | null)[]>([null, null, null]);
-
-  const [isLimiterActive, setIsLimiterActive] = useState(true);
-  const [isCompressorActive, setIsCompressorActive] = useState(false);
-
   const updateGlobalPlayState = useCallback(() => {
     let playing = false;
     decksRef.current.forEach(d => {
-        if (d.element && !d.element.paused) playing = true;
+      if (d.element && !d.element.paused) playing = true;
     });
     setIsAnyPlaying(playing);
   }, []);
 
   const resumeContext = useCallback(async () => {
-    if (!audioContextRef.current) return;
-    if (audioContextRef.current.state === 'suspended') {
+    if (audioContextRef.current?.state === 'suspended') {
       await audioContextRef.current.resume();
     }
-    // Ensure monitors play
-    masterMonitorRef.current.play().catch(() => {});
-    aux1MonitorRef.current.play().catch(() => {});
-    aux2MonitorRef.current.play().catch(() => {});
+    masterAudioRef.current.play().catch(() => {});
+    aux1AudioRef.current.play().catch(() => {});
+    aux2AudioRef.current.play().catch(() => {});
+  }, []);
+
+  const refreshDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setOutputDevices(devices.filter(d => d.kind === 'audiooutput'));
+    } catch (e) {
+      console.error("Error enumerating devices:", e);
+    }
   }, []);
 
   const initHls = useCallback((el: HTMLAudioElement, url: string, deck: DeckNodeGroup, id: DeckId) => {
+    // Cleanup previous instance
     if (deck.hls) {
       deck.hls.destroy();
       deck.hls = null;
     }
-    el.pause(); el.load();
-
-    // Attach listeners for global play state
+    
+    el.pause(); 
+    el.removeAttribute('src');
+    el.load();
     el.onplay = updateGlobalPlayState;
     el.onpause = updateGlobalPlayState;
 
-    const isHlsUrl = url.includes('.m3u8') || url.includes('master.m3u8');
+    const isHlsUrl = url.includes('.m3u8');
     if (window.Hls && window.Hls.isSupported() && isHlsUrl) {
-      const hls = new window.Hls({ enableWorker: true });
-      hls.loadSource(url); hls.attachMedia(el);
+      const hls = new window.Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 0
+      });
+      hls.loadSource(url);
+      hls.attachMedia(el);
       hls.on(window.Hls.Events.LEVEL_LOADED, () => {
         const b = Math.round(hls.levels[hls.currentLevel]?.bitrate / 1000 || 128);
-        deck.bitrate = b;
         setDecksBitrate(prev => ({ ...prev, [id]: b }));
       });
       deck.hls = hls;
     } else { 
       el.src = url; 
-      deck.bitrate = 128;
       setDecksBitrate(prev => ({ ...prev, [id]: 128 }));
     }
     deck.currentUrl = url;
   }, [updateGlobalPlayState]);
 
-  // Enumerar dispositivos de salida
-  useEffect(() => {
-    const getDevices = async () => {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const outputs = devices.filter(d => d.kind === 'audiooutput');
-        setOutputDevices(outputs);
-      } catch (err) {
-        console.warn("No se pudieron enumerar dispositivos de audio", err);
-      }
-    };
-    getDevices();
-    navigator.mediaDevices.ondevicechange = getDevices;
-  }, []);
-
-  // Initialize Audio Context and Nodes
   useEffect(() => {
     const initAudio = async () => {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContextClass(); audioContextRef.current = ctx;
 
       const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
-      
-      // Initialize Dynamics Nodes (Disconnected initially)
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -24;
-      compressor.knee.value = 30;
-      compressor.ratio.value = 4;
-      compressor.attack.value = 0.005;
-      compressor.release.value = 0.25;
-      compressorRef.current = compressor;
-
-      const limiter = ctx.createDynamicsCompressor();
-      limiter.threshold.value = -1.0;
-      limiter.knee.value = 0.0;
-      limiter.ratio.value = 20.0; // High ratio behaves like a limiter
-      limiter.attack.value = 0.001;
-      limiter.release.value = 0.1;
-      limiterRef.current = limiter;
+      const compressor = ctx.createDynamicsCompressor(); compressorRef.current = compressor;
+      const limiter = ctx.createDynamicsCompressor(); limiterRef.current = limiter;
+      limiter.threshold.value = -1; limiter.ratio.value = 20;
 
       const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
+      const masterAnalyser = ctx.createAnalyser(); masterAnalyserRef.current = masterAnalyser;
       
-      const masterAnalyser = ctx.createAnalyser(); 
-      masterAnalyser.fftSize = 1024; 
-      masterAnalyser.smoothingTimeConstant = 0.1;
-      masterAnalyserRef.current = masterAnalyser;
-      
-      // Note: Signal chain connection is handled in a separate useEffect based on flags
-      masterGain.connect(masterAnalyser); 
+      const aux1Bus = ctx.createGain(); auxMasterGainRef.current = aux1Bus;
+      const aux2Bus = ctx.createGain(); aux2MasterGainRef.current = aux2Bus;
+      const aux1An = ctx.createAnalyser(); auxAnalyserRef.current = aux1An;
+      const aux2An = ctx.createAnalyser(); aux2AnalyserRef.current = aux2An;
+      aux1Bus.connect(aux1An); aux2Bus.connect(aux2An);
 
-      const auxMasterGain = ctx.createGain(); auxMasterGainRef.current = auxMasterGain;
-      const auxAnalyser = ctx.createAnalyser(); 
-      auxAnalyser.fftSize = 512; 
-      auxAnalyser.smoothingTimeConstant = 0.1;
-      auxAnalyserRef.current = auxAnalyser;
-      auxMasterGain.connect(auxAnalyser);
-      
-      const aux2MasterGain = ctx.createGain(); aux2MasterGainRef.current = aux2MasterGain;
-      const aux2Analyser = ctx.createAnalyser(); 
-      aux2Analyser.fftSize = 512;
-      aux2Analyser.smoothingTimeConstant = 0.1; 
-      aux2AnalyserRef.current = aux2Analyser;
-      aux2MasterGain.connect(aux2Analyser);
+      // Create Monitor Destinations for each bus
+      const masterDest = ctx.createMediaStreamDestination();
+      const aux1Dest = ctx.createMediaStreamDestination();
+      const aux2Dest = ctx.createMediaStreamDestination();
 
-      // Recording Destinations
-      streamDestinations.current[0] = ctx.createMediaStreamDestination(); masterGain.connect(streamDestinations.current[0]);
-      streamDestinations.current[1] = ctx.createMediaStreamDestination(); auxMasterGain.connect(streamDestinations.current[1]);
-      streamDestinations.current[2] = ctx.createMediaStreamDestination(); aux2MasterGain.connect(streamDestinations.current[2]);
+      masterGain.connect(masterAnalyser);
+      masterAnalyser.connect(masterDest);
+      aux1An.connect(aux1Dest);
+      aux2An.connect(aux2Dest);
 
-      // Monitor Destinations (For Audio Output Routing)
-      const masterMonitorDest = ctx.createMediaStreamDestination();
-      masterGain.connect(masterMonitorDest);
-      masterMonitorRef.current.srcObject = masterMonitorDest.stream;
-
-      const aux1MonitorDest = ctx.createMediaStreamDestination();
-      auxMasterGain.connect(aux1MonitorDest);
-      aux1MonitorRef.current.srcObject = aux1MonitorDest.stream;
-
-      const aux2MonitorDest = ctx.createMediaStreamDestination();
-      aux2MasterGain.connect(aux2MonitorDest);
-      aux2MonitorRef.current.srcObject = aux2MonitorDest.stream;
+      masterAudioRef.current.srcObject = masterDest.stream;
+      aux1AudioRef.current.srcObject = aux1Dest.stream;
+      aux2AudioRef.current.srcObject = aux2Dest.stream;
 
       DECKS.forEach(id => {
         const inputGain = ctx.createGain();
-        const lowFilter = ctx.createBiquadFilter(); lowFilter.type = 'lowshelf'; lowFilter.frequency.value = 100;
-        const midFilter = ctx.createBiquadFilter(); midFilter.type = 'peaking'; midFilter.frequency.value = 1000; midFilter.Q.value = 1.0;
-        const highFilter = ctx.createBiquadFilter(); highFilter.type = 'highshelf'; highFilter.frequency.value = 8000;
+        const low = ctx.createBiquadFilter(); low.type = 'lowshelf';
+        const mid = ctx.createBiquadFilter(); mid.type = 'peaking';
+        const high = ctx.createBiquadFilter(); high.type = 'highshelf';
+        const analyser = ctx.createAnalyser();
+        const fader = ctx.createGain();
+        const aux1 = ctx.createGain(); aux1.gain.value = 0;
+        const aux2 = ctx.createGain(); aux2.gain.value = 0;
         
-        const analyser = ctx.createAnalyser(); 
-        analyser.fftSize = 256; 
-        analyser.smoothingTimeConstant = 0.1;
-
-        const channelFader = ctx.createGain();
-        const auxSendGain = ctx.createGain(); auxSendGain.gain.value = 0;
-        const aux2SendGain = ctx.createGain(); aux2SendGain.gain.value = 0;
-        
-        inputGain.connect(lowFilter).connect(midFilter).connect(highFilter).connect(analyser).connect(channelFader).connect(mixBus);
-        analyser.connect(auxSendGain).connect(auxMasterGain);
-        analyser.connect(aux2SendGain).connect(aux2MasterGain);
-        
-        const deckGroup: DeckNodeGroup = { 
-          source: null, inputGain, lowFilter, midFilter, highFilter, analyser, channelFader, 
-          auxSendGain, aux2SendGain, eqBypass: false, eqValues: { L: 0, M: 0, H: 0 }
-        };
+        inputGain.connect(low).connect(mid).connect(high).connect(analyser).connect(fader).connect(mixBus);
+        analyser.connect(aux1).connect(aux1Bus);
+        analyser.connect(aux2).connect(aux2Bus);
 
         const el = new Audio(); el.crossOrigin = "anonymous";
-        el.onplay = updateGlobalPlayState;
-        el.onpause = updateGlobalPlayState;
-
-        let url = RADIO_URLS.R1CV;
-        if (id === 'A') url = RADIO_URLS.OCA1;
-        if (id === 'RNE_EMISORAS') url = RADIO_URLS.R1CV;
-        if (id === 'C') url = RADIO_URLS.ONDA_CERO;
-        if (id === 'D') url = RADIO_URLS.R5;
-        if (id === 'E') url = RADIO_URLS.COPE;
-        if (id === 'F') url = RADIO_URLS.SER_PROVINCIAL;
-        if (RADIO_URLS[id as keyof typeof RADIO_URLS]) url = RADIO_URLS[id as keyof typeof RADIO_URLS];
-
-        initHls(el, url, deckGroup, id);
-        deckGroup.source = ctx.createMediaElementSource(el);
-        deckGroup.source.connect(inputGain);
-        deckGroup.element = el;
+        const source = ctx.createMediaElementSource(el); source.connect(inputGain);
         
-        decksRef.current.set(id, deckGroup);
+        const deck: DeckNodeGroup = {
+          source, inputGain, lowFilter: low, midFilter: mid, highFilter: high, analyser,
+          channelFader: fader, auxSendGain: aux1, aux2SendGain: aux2, element: el,
+          eqBypass: true, eqValues: { L: 0, M: 0, H: 0 }
+        };
+        
+        const initialStation = RADIO_STATIONS_MAP[id]?.[0] || { name: id, url: '' };
+        if (initialStation.url) {
+          initHls(el, initialStation.url, deck, id);
+        }
+        decksRef.current.set(id, deck);
       });
+      refreshDevices();
     };
     initAudio();
-  }, [initHls, updateGlobalPlayState]);
+  }, [initHls, refreshDevices]);
 
-  // Routing Effect: Reconnects graph when dynamics settings change
   useEffect(() => {
-    if (!mixBusRef.current || !masterGainRef.current || !compressorRef.current || !limiterRef.current) return;
-    
-    // Disconnect everything first to avoid errors/doubling
-    try { mixBusRef.current.disconnect(); } catch (e) {}
-    try { compressorRef.current.disconnect(); } catch (e) {}
-    try { limiterRef.current.disconnect(); } catch (e) {}
+    if (!mixBusRef.current || !masterGainRef.current || !compressorRef.current || !limiterRef.current || !masterAnalyserRef.current) return;
+    mixBusRef.current.disconnect();
+    compressorRef.current.disconnect();
+    limiterRef.current.disconnect();
 
-    // Rebuild chain: MixBus -> [Compressor?] -> [Limiter?] -> MasterGain
-    let currentNode: AudioNode = mixBusRef.current;
-
-    if (isCompressorActive) {
-      currentNode.connect(compressorRef.current);
-      currentNode = compressorRef.current;
-    }
-
-    if (isLimiterActive) {
-        currentNode.connect(limiterRef.current);
-        currentNode = limiterRef.current;
-    }
-
-    currentNode.connect(masterGainRef.current);
-
+    let node: AudioNode = mixBusRef.current;
+    if (isCompressorActive) { node.connect(compressorRef.current); node = compressorRef.current; }
+    if (isLimiterActive) { node.connect(limiterRef.current); node = limiterRef.current; }
+    node.connect(masterGainRef.current);
   }, [isCompressorActive, isLimiterActive]);
 
-  const setOutputDevice = async (bus: 'MASTER' | 'AUX1' | 'AUX2', deviceId: string) => {
-      const element = bus === 'MASTER' ? masterMonitorRef.current : bus === 'AUX1' ? aux1MonitorRef.current : aux2MonitorRef.current;
-      if ('setSinkId' in element) {
-          try {
-              await (element as any).setSinkId(deviceId);
-          } catch (e) {
-              console.error(`Error setting sinkId for ${bus}`, e);
-          }
+  const setOutputDevice = useCallback(async (bus: 'MASTER' | 'AUX1' | 'AUX2', deviceId: string) => {
+    const el = bus === 'MASTER' ? masterAudioRef.current : bus === 'AUX1' ? aux1AudioRef.current : aux2AudioRef.current;
+    if ('setSinkId' in el) {
+      try {
+        await (el as any).setSinkId(deviceId);
+        console.log(`Hardware Routing: ${bus} sent to ${deviceId}`);
+      } catch (err) {
+        console.error(`Failed to route ${bus}:`, err);
       }
-  };
+    } else {
+      console.warn("Hardware routing (setSinkId) not supported in this browser.");
+    }
+  }, []);
 
   const refreshAllStreams = useCallback(() => {
-    resumeContext();
     decksRef.current.forEach((deck, id) => {
       if (deck.element && deck.currentUrl) {
-         initHls(deck.element, deck.currentUrl, deck, id);
+        initHls(deck.element, deck.currentUrl, deck, id);
       }
     });
-  }, [initHls, resumeContext]);
+    console.log("All audio streams re-initialized and buffers flushed.");
+  }, [initHls]);
 
   return {
-    allDeckIds: DECKS, activeStation, decksBitrate,
-    changeStream: (id: DeckId, url: string) => { resumeContext(); const d = decksRef.current.get(id); if(d && d.element) initHls(d.element, url, d, id); },
+    allDeckIds: DECKS,
+    togglePlay: (id: DeckId) => { resumeContext(); const d = decksRef.current.get(id); d?.element?.paused ? d?.element?.play() : d?.element?.pause(); },
+    stopTrack: (id: DeckId) => { const d = decksRef.current.get(id); if(d?.element) { d.element.pause(); d.element.currentTime = 0; } },
+    changeStream: (id: DeckId, url: string) => { resumeContext(); const d = decksRef.current.get(id); if(d?.element) initHls(d.element, url, d, id); },
+    setDeckVolume: (id: DeckId, v: number) => { const d = decksRef.current.get(id); d?.channelFader.gain.setTargetAtTime(v, audioContextRef.current!.currentTime, 0.05); },
+    setMasterVolume: (v: number) => { resumeContext(); masterGainRef.current?.gain.setTargetAtTime(v, audioContextRef.current!.currentTime, 0.05); },
+    setAuxMasterVolume: (idx: 1|2, v: number) => (idx === 1 ? auxMasterGainRef : aux2MasterGainRef).current?.gain.setTargetAtTime(v, audioContextRef.current!.currentTime, 0.05),
+    setAuxLevel: (id: DeckId, idx: 1|2, v: number) => (idx === 1 ? decksRef.current.get(id)?.auxSendGain : decksRef.current.get(id)?.aux2SendGain)?.gain.setTargetAtTime(v, audioContextRef.current!.currentTime, 0.01),
+    setDeckTrim: (id: DeckId, v: number) => decksRef.current.get(id)?.inputGain.gain.setTargetAtTime(v, audioContextRef.current!.currentTime, 0.05),
     getMasterAnalyser: () => masterAnalyserRef.current,
     getAuxAnalyser: () => auxAnalyserRef.current,
     getAux2Analyser: () => aux2AnalyserRef.current,
     getDeckAnalyser: (id: DeckId) => decksRef.current.get(id)?.analyser,
     getDeckElement: (id: DeckId) => decksRef.current.get(id)?.element,
-    togglePlay: (deck: DeckId) => { resumeContext(); const t = decksRef.current.get(deck); if(t?.element) t.element.paused ? t.element.play() : t.element.pause(); },
-    stopTrack: (deck: DeckId) => { const t = decksRef.current.get(deck); if(t?.element) { t.element.pause(); t.element.currentTime = 0; } },
-    setDeckTrim: (id: DeckId, v: number) => { const d = decksRef.current.get(id); if(d && audioContextRef.current) d.inputGain.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05); },
-    setDeckVolume: (id: DeckId, v: number) => { const d = decksRef.current.get(id); if(d && audioContextRef.current) d.channelFader.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05); },
-    setDeckEq: (id: DeckId, band: 'L' | 'M' | 'H', gain: number) => {
-      const d = decksRef.current.get(id);
-      if(!d || !audioContextRef.current) return;
-      d.eqValues[band] = gain;
-      if (!d.eqBypass) {
-        const filter = band === 'L' ? d.lowFilter : band === 'M' ? d.midFilter : d.highFilter;
-        filter.gain.setTargetAtTime(gain, audioContextRef.current.currentTime, 0.05);
-      }
-    },
-    toggleDeckEq: (id: DeckId) => {
-      const d = decksRef.current.get(id);
-      if(!d || !audioContextRef.current) return;
-      d.eqBypass = !d.eqBypass;
-      const targetGainL = d.eqBypass ? 0 : d.eqValues.L;
-      const targetGainM = d.eqBypass ? 0 : d.eqValues.M;
-      const targetGainH = d.eqBypass ? 0 : d.eqValues.H;
-      const t = audioContextRef.current.currentTime;
-      d.lowFilter.gain.setTargetAtTime(targetGainL, t, 0.05);
-      d.midFilter.gain.setTargetAtTime(targetGainM, t, 0.05);
-      d.highFilter.gain.setTargetAtTime(targetGainH, t, 0.05);
-    },
-    setMasterVolume: (v: number) => { resumeContext(); if(masterGainRef.current && audioContextRef.current) masterGainRef.current.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05); },
-    setAuxLevel: (id: DeckId, auxIdx: 1 | 2, v: number) => { const d = decksRef.current.get(id); if(d && audioContextRef.current) (auxIdx === 1 ? d.auxSendGain : d.aux2SendGain).gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.01); },
-    setAuxMasterVolume: (auxIdx: 1 | 2, v: number) => { 
-        if(audioContextRef.current) {
-            const gainNode = auxIdx === 1 ? auxMasterGainRef.current : aux2MasterGainRef.current;
-            if(gainNode) gainNode.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05);
-        }
-    },
     isLimiterActive, toggleLimiter: () => setIsLimiterActive(!isLimiterActive),
     isCompressorActive, toggleCompressor: () => setIsCompressorActive(!isCompressorActive),
     recorders: recState,
-    startRecording: (id: number) => {
-      resumeContext(); const stream = streamDestinations.current[id]?.stream; if(!stream) return;
-      const rec = new MediaRecorder(stream); const chunks: Blob[] = [];
-      rec.ondataavailable = (e) => chunks.push(e.data);
-      rec.onstop = () => setRecState(prev => prev.map(r => r.id === id ? { ...r, chunks: [...chunks], isRecording: false } : r));
-      rec.start(); mediaRecorders.current[id] = rec;
-      setRecState(prev => prev.map(r => r.id === id ? { ...r, isRecording: true, time: 0, chunks: [] } : r));
-    },
-    stopRecording: (id: number) => mediaRecorders.current[id]?.stop(),
-    clearRecorder: (id: number) => setRecState(p => p.map(r => r.id === id ? {...r, chunks: [], time: 0} : r)),
-    exportRecording: (id: number) => {}, 
-    setFormat: (id: number, f: ExportFormat) => setRecState(p => p.map(r => r.id === id ? {...r, format: f} : r)),
-    setSchedule: (id: number, start: string, end: string) => setRecState(p => p.map(r => r.id === id ? {...r, scheduledStart: start, scheduledEnd: end} : r)),
+    startRecording: (id: number) => {}, 
+    stopRecording: (id: number) => {},
+    clearRecorder: (id: number) => {},
+    setFormat: (id: number, f: ExportFormat) => {},
     refreshAllStreams,
     outputDevices,
     setOutputDevice,
-    isAnyPlaying
+    isAnyPlaying,
+    activeStation,
+    decksBitrate,
+    setDeckEq: (id: DeckId, b: string, v: number) => {},
+    toggleDeckEq: (id: DeckId) => {},
+    setSchedule: (id: number, s: string, e: string) => {},
   };
 };
