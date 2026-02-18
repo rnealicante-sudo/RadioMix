@@ -78,10 +78,16 @@ export const useAudioMixer = () => {
   
   const decksRef = useRef<Map<DeckId, DeckNodeGroup>>(new Map());
 
-  // Hardware Monitoring Outputs (HTML Audio elements hooked to MediaStreamDestinations)
   const masterAudioRef = useRef<HTMLAudioElement>(new Audio());
   const aux1AudioRef = useRef<HTMLAudioElement>(new Audio());
   const aux2AudioRef = useRef<HTMLAudioElement>(new Audio());
+
+  const masterDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const aux1DestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const aux2DestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+
+  const recordersRef = useRef<Map<number, MediaRecorder>>(new Map());
+  const recordingIntervalsRef = useRef<Map<number, number>>(new Map());
 
   const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [decksBitrate, setDecksBitrate] = useState<Record<string, number>>({});
@@ -123,35 +129,21 @@ export const useAudioMixer = () => {
   }, []);
 
   const initHls = useCallback((el: HTMLAudioElement, url: string, deck: DeckNodeGroup, id: DeckId) => {
-    // Cleanup previous instance
-    if (deck.hls) {
-      deck.hls.destroy();
-      deck.hls = null;
-    }
-    
-    el.pause(); 
-    el.removeAttribute('src');
-    el.load();
-    el.onplay = updateGlobalPlayState;
-    el.onpause = updateGlobalPlayState;
+    if (deck.hls) { deck.hls.destroy(); deck.hls = null; }
+    el.pause(); el.removeAttribute('src'); el.load();
+    el.onplay = updateGlobalPlayState; el.onpause = updateGlobalPlayState;
 
     const isHlsUrl = url.includes('.m3u8');
     if (window.Hls && window.Hls.isSupported() && isHlsUrl) {
-      const hls = new window.Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 0
-      });
-      hls.loadSource(url);
-      hls.attachMedia(el);
+      const hls = new window.Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 0 });
+      hls.loadSource(url); hls.attachMedia(el);
       hls.on(window.Hls.Events.LEVEL_LOADED, () => {
         const b = Math.round(hls.levels[hls.currentLevel]?.bitrate / 1000 || 128);
         setDecksBitrate(prev => ({ ...prev, [id]: b }));
       });
       deck.hls = hls;
     } else { 
-      el.src = url; 
-      setDecksBitrate(prev => ({ ...prev, [id]: 128 }));
+      el.src = url; setDecksBitrate(prev => ({ ...prev, [id]: 128 }));
     }
     deck.currentUrl = url;
   }, [updateGlobalPlayState]);
@@ -175,19 +167,18 @@ export const useAudioMixer = () => {
       const aux2An = ctx.createAnalyser(); aux2AnalyserRef.current = aux2An;
       aux1Bus.connect(aux1An); aux2Bus.connect(aux2An);
 
-      // Create Monitor Destinations for each bus
-      const masterDest = ctx.createMediaStreamDestination();
-      const aux1Dest = ctx.createMediaStreamDestination();
-      const aux2Dest = ctx.createMediaStreamDestination();
+      const mDest = ctx.createMediaStreamDestination(); masterDestRef.current = mDest;
+      const a1Dest = ctx.createMediaStreamDestination(); aux1DestRef.current = a1Dest;
+      const a2Dest = ctx.createMediaStreamDestination(); aux2DestRef.current = a2Dest;
 
       masterGain.connect(masterAnalyser);
-      masterAnalyser.connect(masterDest);
-      aux1An.connect(aux1Dest);
-      aux2An.connect(aux2Dest);
+      masterAnalyser.connect(mDest);
+      aux1An.connect(a1Dest);
+      aux2An.connect(a2Dest);
 
-      masterAudioRef.current.srcObject = masterDest.stream;
-      aux1AudioRef.current.srcObject = aux1Dest.stream;
-      aux2AudioRef.current.srcObject = aux2Dest.stream;
+      masterAudioRef.current.srcObject = mDest.stream;
+      aux1AudioRef.current.srcObject = a1Dest.stream;
+      aux2AudioRef.current.srcObject = a2Dest.stream;
 
       DECKS.forEach(id => {
         const inputGain = ctx.createGain();
@@ -213,9 +204,7 @@ export const useAudioMixer = () => {
         };
         
         const initialStation = RADIO_STATIONS_MAP[id]?.[0] || { name: id, url: '' };
-        if (initialStation.url) {
-          initHls(el, initialStation.url, deck, id);
-        }
+        if (initialStation.url) { initHls(el, initialStation.url, deck, id); }
         decksRef.current.set(id, deck);
       });
       refreshDevices();
@@ -225,10 +214,7 @@ export const useAudioMixer = () => {
 
   useEffect(() => {
     if (!mixBusRef.current || !masterGainRef.current || !compressorRef.current || !limiterRef.current || !masterAnalyserRef.current) return;
-    mixBusRef.current.disconnect();
-    compressorRef.current.disconnect();
-    limiterRef.current.disconnect();
-
+    mixBusRef.current.disconnect(); compressorRef.current.disconnect(); limiterRef.current.disconnect();
     let node: AudioNode = mixBusRef.current;
     if (isCompressorActive) { node.connect(compressorRef.current); node = compressorRef.current; }
     if (isLimiterActive) { node.connect(limiterRef.current); node = limiterRef.current; }
@@ -238,25 +224,73 @@ export const useAudioMixer = () => {
   const setOutputDevice = useCallback(async (bus: 'MASTER' | 'AUX1' | 'AUX2', deviceId: string) => {
     const el = bus === 'MASTER' ? masterAudioRef.current : bus === 'AUX1' ? aux1AudioRef.current : aux2AudioRef.current;
     if ('setSinkId' in el) {
-      try {
-        await (el as any).setSinkId(deviceId);
-        console.log(`Hardware Routing: ${bus} sent to ${deviceId}`);
-      } catch (err) {
-        console.error(`Failed to route ${bus}:`, err);
-      }
-    } else {
-      console.warn("Hardware routing (setSinkId) not supported in this browser.");
+      try { await (el as any).setSinkId(deviceId); } catch (err) { console.error(`Failed to route ${bus}:`, err); }
     }
   }, []);
 
   const refreshAllStreams = useCallback(() => {
     decksRef.current.forEach((deck, id) => {
-      if (deck.element && deck.currentUrl) {
-        initHls(deck.element, deck.currentUrl, deck, id);
-      }
+      if (deck.element && deck.currentUrl) { initHls(deck.element, deck.currentUrl, deck, id); }
     });
-    console.log("All audio streams re-initialized and buffers flushed.");
   }, [initHls]);
+
+  const startRecording = useCallback((id: number) => {
+    const state = recState[id];
+    const dest = id === 0 ? masterDestRef.current : id === 1 ? aux1DestRef.current : aux2DestRef.current;
+    if (!dest) return;
+
+    const mimeType = state.format === 'OGG' ? 'audio/ogg' : 'audio/webm';
+    const recorder = new MediaRecorder(dest.stream, { mimeType });
+    const chunks: Blob[] = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      setRecState(prev => prev.map(s => s.id === id ? { ...s, isRecording: false, chunks: [...chunks] } : s));
+    };
+
+    recorder.start();
+    recordersRef.current.set(id, recorder);
+
+    const intervalId = window.setInterval(() => {
+      setRecState(prev => prev.map(s => s.id === id ? { ...s, time: s.time + 1 } : s));
+    }, 1000);
+    recordingIntervalsRef.current.set(id, intervalId);
+
+    setRecState(prev => prev.map(s => s.id === id ? { ...s, isRecording: true, time: 0, chunks: [] } : s));
+  }, [recState]);
+
+  const stopRecording = useCallback((id: number) => {
+    const recorder = recordersRef.current.get(id);
+    if (recorder) {
+      recorder.stop();
+      recordersRef.current.delete(id);
+    }
+    const intervalId = recordingIntervalsRef.current.get(id);
+    if (intervalId) {
+      clearInterval(intervalId);
+      recordingIntervalsRef.current.delete(id);
+    }
+  }, []);
+
+  const clearRecorder = useCallback((id: number) => {
+    setRecState(prev => prev.map(s => s.id === id ? { ...s, time: 0, chunks: [], isRecording: false } : s));
+  }, []);
+
+  const exportRecording = useCallback((id: number) => {
+    const state = recState[id];
+    if (state.chunks.length === 0) return;
+    const blob = new Blob(state.chunks, { type: state.chunks[0].type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ReVoxMix_${state.source}_${new Date().toISOString().slice(0,19)}.${state.format.toLowerCase()}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [recState]);
+
+  const setFormat = useCallback((id: number, format: ExportFormat) => {
+    setRecState(prev => prev.map(s => s.id === id ? { ...s, format } : s));
+  }, []);
 
   return {
     allDeckIds: DECKS,
@@ -276,16 +310,8 @@ export const useAudioMixer = () => {
     isLimiterActive, toggleLimiter: () => setIsLimiterActive(!isLimiterActive),
     isCompressorActive, toggleCompressor: () => setIsCompressorActive(!isCompressorActive),
     recorders: recState,
-    startRecording: (id: number) => {}, 
-    stopRecording: (id: number) => {},
-    clearRecorder: (id: number) => {},
-    setFormat: (id: number, f: ExportFormat) => {},
-    refreshAllStreams,
-    outputDevices,
-    setOutputDevice,
-    isAnyPlaying,
-    activeStation,
-    decksBitrate,
+    startRecording, stopRecording, clearRecorder, setFormat, exportRecording,
+    refreshAllStreams, outputDevices, setOutputDevice, isAnyPlaying, activeStation, decksBitrate,
     setDeckEq: (id: DeckId, b: string, v: number) => {},
     toggleDeckEq: (id: DeckId) => {},
     setSchedule: (id: number, s: string, e: string) => {},

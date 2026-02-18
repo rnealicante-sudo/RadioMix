@@ -15,7 +15,7 @@ export default function App() {
     getMasterAnalyser, getAuxAnalyser, getAux2Analyser, getDeckAnalyser, getDeckElement,
     allDeckIds, decksBitrate, activeStation,
     isLimiterActive, toggleLimiter, isCompressorActive, toggleCompressor, 
-    recorders, startRecording, stopRecording, clearRecorder, setFormat,
+    recorders, startRecording, stopRecording, clearRecorder, setFormat, exportRecording,
     changeStream, setAuxLevel, setAuxMasterVolume, refreshAllStreams, isAnyPlaying,
     outputDevices, setOutputDevice
   } = useAudioMixer();
@@ -127,39 +127,19 @@ export default function App() {
 
                       {/* RECORDERS STACKED */}
                       <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar">
-                          <div className="flex-1 min-h-[80px]">
-                              <Recorder 
-                                  state={recorders[0]} 
-                                  onStart={() => startRecording(0)} 
-                                  onStop={() => stopRecording(0)} 
-                                  onExport={() => {}} 
-                                  onFormatChange={(f) => setFormat(0, f)} 
-                                  onClear={() => clearRecorder(0)} 
-                                  analyser={getMasterAnalyser()} 
-                              />
-                          </div>
-                          <div className="flex-1 min-h-[80px]">
-                              <Recorder 
-                                  state={recorders[1]} 
-                                  onStart={() => startRecording(1)} 
-                                  onStop={() => stopRecording(1)} 
-                                  onExport={() => {}} 
-                                  onFormatChange={(f) => setFormat(1, f)} 
-                                  onClear={() => clearRecorder(1)} 
-                                  analyser={getAuxAnalyser()} 
-                              />
-                          </div>
-                          <div className="flex-1 min-h-[80px]">
-                              <Recorder 
-                                  state={recorders[2]} 
-                                  onStart={() => startRecording(2)} 
-                                  onStop={() => stopRecording(2)} 
-                                  onExport={() => {}} 
-                                  onFormatChange={(f) => setFormat(2, f)} 
-                                  onClear={() => clearRecorder(2)} 
-                                  analyser={getAux2Analyser()}
-                              />
-                          </div>
+                          {recorders.map((rec, idx) => (
+                            <div key={idx} className="flex-1 min-h-[95px]">
+                                <Recorder 
+                                    state={rec} 
+                                    onStart={() => startRecording(idx)} 
+                                    onStop={() => stopRecording(idx)} 
+                                    onExport={() => exportRecording(idx)} 
+                                    onFormatChange={(f) => setFormat(idx, f)} 
+                                    onClear={() => clearRecorder(idx)} 
+                                    analyser={idx === 0 ? getMasterAnalyser() : idx === 1 ? getAuxAnalyser() : getAux2Analyser()} 
+                                />
+                            </div>
+                          ))}
                       </div>
                   </div>
               </div>
@@ -201,7 +181,6 @@ export default function App() {
                             <Speaker size={8} /> HARDWARE ROUTING
                           </span>
                           <div className="flex flex-col gap-1.5">
-                              {/* MASTER OUTPUT */}
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-[6px] font-bold text-red-500 uppercase">Bus Master</span>
                                 <select 
@@ -212,7 +191,6 @@ export default function App() {
                                   {outputDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${d.deviceId.slice(0,5)}`}</option>)}
                                 </select>
                               </div>
-                              {/* AUX 1 OUTPUT */}
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-[6px] font-bold text-green-500 uppercase">Bus Aux 1</span>
                                 <select 
@@ -223,7 +201,6 @@ export default function App() {
                                   {outputDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${d.deviceId.slice(0,5)}`}</option>)}
                                 </select>
                               </div>
-                              {/* AUX 2 OUTPUT */}
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-[6px] font-bold text-amber-500 uppercase">Bus Aux 2</span>
                                 <select 
@@ -251,7 +228,6 @@ export default function App() {
                           </div>
                       </div>
 
-                      {/* MASTER FADER SECTION */}
                       <div className="flex-1 flex flex-col bg-[#1e3a57]/40 rounded border border-slate-800/50 p-2 min-h-[180px] shadow-2xl">
                           <div className="flex justify-between items-center mb-1.5">
                               <span className="text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-sm shadow-lg uppercase italic">LR MASTER</span>
@@ -278,7 +254,6 @@ export default function App() {
                           </div>
                       </div>
 
-                      {/* AUX SYSTEM */}
                       <div className="flex flex-col gap-1.5 mt-1">
                           <div className="bg-[#111a26] rounded border border-slate-800/50 p-1.5 flex items-center justify-between shadow-sm">
                               <span className="text-[9px] font-black text-green-500 ml-1">AUX 1</span>
