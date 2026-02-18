@@ -15,23 +15,21 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
     if (!ctx) return;
 
     let animationId: number;
-    const bufferLength = analyser ? analyser.frequencyBinCount : 2048; 
+    const bufferLength = analyser ? analyser.frequencyBinCount : 1024; 
     const dataArray = new Uint8Array(bufferLength);
     
     let currentLevel = 0;
     let peakLevel = 0;
     let peakHoldFrames = 0;
-    const PEAK_HOLD_TIME = 60;
+    const PEAK_HOLD_TIME = 45;
 
     const render = () => {
       animationId = requestAnimationFrame(render);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Fondo oscuro de rack
       ctx.fillStyle = '#050910';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Textura de rejilla
       ctx.fillStyle = '#0a101d';
       for(let i=0; i<canvas.width; i+=8) {
           ctx.fillRect(i, 0, 1, canvas.height);
@@ -48,13 +46,14 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
         rms = Math.sqrt(sum / bufferLength);
       }
 
-      const sensitivity = 5.0; 
+      const sensitivity = 5.2; 
       const targetLevel = Math.min(rms * sensitivity, 1.0);
       
       if (targetLevel > currentLevel) {
           currentLevel = targetLevel;
       } else {
-          currentLevel += (targetLevel - currentLevel) * 0.12;
+          // Faster decay for main meter
+          currentLevel += (targetLevel - currentLevel) * 0.25;
       }
 
       if (currentLevel > peakLevel) {
@@ -64,7 +63,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
           if (peakHoldFrames > 0) {
               peakHoldFrames--;
           } else {
-              peakLevel -= 0.006;
+              peakLevel -= 0.007;
           }
       }
 
@@ -79,33 +78,30 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
       const gap = 2;
 
       const drawLEDStrip = (y: number, label: string) => {
-          // Label de canal
           ctx.fillStyle = '#334155';
           ctx.font = 'black 9px sans-serif';
           ctx.textAlign = 'right';
           ctx.fillText(label, paddingX - 6, y + singleBarHeight/1.5);
 
-          // Fondo de segmentos apagados
           ctx.fillStyle = '#0f172a';
           for(let i = 0; i < numSegments; i++) {
                const x = paddingX + (i * segmentWidth);
                ctx.fillRect(x, y, segmentWidth - gap, singleBarHeight);
           }
 
-          // Segmentos activos
           const activeSegments = Math.floor(currentLevel * numSegments);
           for (let i = 0; i < activeSegments; i++) {
               const x = paddingX + (i * segmentWidth);
               const percent = i / numSegments;
               
               if (percent > 0.88) {
-                   ctx.fillStyle = '#ef4444'; // Red (Clip)
+                   ctx.fillStyle = '#ef4444'; 
                    ctx.shadowColor = '#ef4444';
               } else if (percent > 0.65) {
-                   ctx.fillStyle = '#fbbf24'; // Amber (Warn)
+                   ctx.fillStyle = '#fbbf24'; 
                    ctx.shadowColor = '#fbbf24';
               } else {
-                   ctx.fillStyle = '#10b981'; // Green (Normal)
+                   ctx.fillStyle = '#10b981'; 
                    ctx.shadowColor = '#10b981';
               }
               
@@ -114,7 +110,6 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
               ctx.shadowBlur = 0;
           }
 
-          // Pico (Peak)
           const peakIdx = Math.floor(peakLevel * numSegments);
           if (peakIdx < numSegments && peakLevel > 0.02) {
               const x = paddingX + (peakIdx * segmentWidth);
@@ -126,7 +121,6 @@ export const Visualizer: React.FC<VisualizerProps> = ({ analyser }) => {
       drawLEDStrip(paddingY, "L");
       drawLEDStrip(paddingY + singleBarHeight + 8, "R");
 
-      // Escala de dB
       const dbPoints = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
       const dbLabels = ["-∞", "-40", "-20", "-10", "-3", "0dB"];
       

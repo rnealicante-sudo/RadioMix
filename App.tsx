@@ -19,6 +19,7 @@ export default function App() {
     recorders, startRecording, stopRecording, clearRecorder, exportRecording, setFormat,
     changeStream, setAuxLevel,
     outputDevices, setOutputDevice, setAuxMasterVolume,
+    refreshAllStreams,
     isAnyPlaying
   } = useAudioMixer();
 
@@ -117,10 +118,25 @@ export default function App() {
                         
                         {/* 1. Output & Master Section */}
                         <div className="flex-1 flex flex-col bg-[#0b111a] border border-slate-800 rounded overflow-hidden">
-                            <div className="w-full text-center py-1 bg-[#162030] border-b border-slate-700"><span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">OUTPUT MATRIX</span></div>
+                            <div className="w-full text-center py-1 bg-[#162030] border-b border-slate-700 flex items-center justify-between px-2">
+                                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">SYSTEM</span>
+                                <Settings size={10} className="text-slate-500" />
+                            </div>
                             
                             <div className="flex-1 flex flex-col gap-2 p-2 overflow-y-auto custom-scrollbar">
                                 
+                                {/* REFRESH BUTTON */}
+                                <button 
+                                  onClick={refreshAllStreams}
+                                  className="w-full bg-[#1e293b] hover:bg-[#2d3b4e] border border-slate-700 text-slate-300 hover:text-white rounded py-2 flex items-center justify-center gap-2 group transition-all mb-1 active:scale-95"
+                                  title="Recargar todos los streams"
+                                >
+                                    <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-700 text-cyan-500" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">RELOAD ALL</span>
+                                </button>
+
+                                <div className="h-[1px] bg-slate-800 w-full mb-1"></div>
+
                                 {/* MASTER FADER BLOCK REDISEÑADO - REGLA EN MEDIO */}
                                 <div className="flex flex-col bg-[#111a26] rounded border border-slate-800/50 p-2 flex-1 min-h-[180px]">
                                     <div className="flex justify-between items-center mb-2">

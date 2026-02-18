@@ -31,16 +31,14 @@ export const MiniVisualizer: React.FC<MiniVisualizerProps> = ({
     let currentLevel = 0;
     let peakLevel = 0;
     let peakHoldFrames = 0;
-    const PEAK_HOLD_TIME = 40;
+    const PEAK_HOLD_TIME = 30; // Slightly faster peak release
 
-    // Ajustar segmentCount según la altura disponible si es vertical
     const segmentCount = isHorizontal ? initialSegmentCount : Math.max(10, Math.floor(height / 4));
 
     const draw = () => {
       animationId = requestAnimationFrame(draw);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Background
       ctx.fillStyle = '#0a1018'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -55,12 +53,14 @@ export const MiniVisualizer: React.FC<MiniVisualizerProps> = ({
         rms = Math.sqrt(sum / dataArray.length);
       }
 
-      const targetLevel = Math.min(rms * 5.0, 1.0);
+      // Boost sensitivity slightly
+      const targetLevel = Math.min(rms * 5.2, 1.0);
 
       if (targetLevel > currentLevel) {
-          currentLevel = targetLevel;
+          currentLevel = targetLevel; // Instant attack
       } else {
-          currentLevel += (targetLevel - currentLevel) * 0.15;
+          // Faster decay for snappier feel
+          currentLevel += (targetLevel - currentLevel) * 0.3; 
       }
 
       if (currentLevel > peakLevel) {
@@ -70,7 +70,7 @@ export const MiniVisualizer: React.FC<MiniVisualizerProps> = ({
           if (peakHoldFrames > 0) {
               peakHoldFrames--;
           } else {
-              peakLevel -= 0.005;
+              peakLevel -= 0.008; // Faster peak fall
           }
       }
       
@@ -107,7 +107,6 @@ export const MiniVisualizer: React.FC<MiniVisualizerProps> = ({
              else ctx.fillRect(1, pos, canvas.width - 2, segmentDim);
         }
 
-        // Peak
         if (isPeak && peakLevel > 0.01) {
             ctx.fillStyle = '#ef4444'; 
             if (isHorizontal) ctx.fillRect(pos, 0, segmentDim, canvas.height);

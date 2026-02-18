@@ -152,16 +152,26 @@ export const useAudioMixer = () => {
 
       const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
       const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
-      const masterAnalyser = ctx.createAnalyser(); masterAnalyser.fftSize = 2048; masterAnalyserRef.current = masterAnalyser;
+      // Faster FFT size for Master visualizer responsiveness
+      const masterAnalyser = ctx.createAnalyser(); 
+      masterAnalyser.fftSize = 1024; 
+      masterAnalyser.smoothingTimeConstant = 0.1;
+      masterAnalyserRef.current = masterAnalyser;
       
-      mixBus.connect(masterGain).connect(masterAnalyser); // No conectamos a ctx.destination directamente para controlar outputs
+      mixBus.connect(masterGain).connect(masterAnalyser); 
 
       const auxMasterGain = ctx.createGain(); auxMasterGainRef.current = auxMasterGain;
-      const auxAnalyser = ctx.createAnalyser(); auxAnalyser.fftSize = 512; auxAnalyserRef.current = auxAnalyser;
+      const auxAnalyser = ctx.createAnalyser(); 
+      auxAnalyser.fftSize = 512; 
+      auxAnalyser.smoothingTimeConstant = 0.1;
+      auxAnalyserRef.current = auxAnalyser;
       auxMasterGain.connect(auxAnalyser);
       
       const aux2MasterGain = ctx.createGain(); aux2MasterGainRef.current = aux2MasterGain;
-      const aux2Analyser = ctx.createAnalyser(); aux2Analyser.fftSize = 512; aux2AnalyserRef.current = aux2Analyser;
+      const aux2Analyser = ctx.createAnalyser(); 
+      aux2Analyser.fftSize = 512;
+      aux2Analyser.smoothingTimeConstant = 0.1; 
+      aux2AnalyserRef.current = aux2Analyser;
       aux2MasterGain.connect(aux2Analyser);
 
       // Recording Destinations
@@ -187,7 +197,12 @@ export const useAudioMixer = () => {
         const lowFilter = ctx.createBiquadFilter(); lowFilter.type = 'lowshelf'; lowFilter.frequency.value = 100;
         const midFilter = ctx.createBiquadFilter(); midFilter.type = 'peaking'; midFilter.frequency.value = 1000; midFilter.Q.value = 1.0;
         const highFilter = ctx.createBiquadFilter(); highFilter.type = 'highshelf'; highFilter.frequency.value = 8000;
-        const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
+        
+        // Use a smaller FFT size for deck meters to ensure zero visual lag
+        const analyser = ctx.createAnalyser(); 
+        analyser.fftSize = 256; 
+        analyser.smoothingTimeConstant = 0.1;
+
         const channelFader = ctx.createGain();
         const auxSendGain = ctx.createGain(); auxSendGain.gain.value = 0;
         const aux2SendGain = ctx.createGain(); aux2SendGain.gain.value = 0;
@@ -204,7 +219,6 @@ export const useAudioMixer = () => {
         if (id !== 'LIVE_MIC') {
           const el = new Audio(); el.crossOrigin = "anonymous";
           
-          // Listeners for initial creation
           el.onplay = updateGlobalPlayState;
           el.onpause = updateGlobalPlayState;
 
@@ -233,14 +247,20 @@ export const useAudioMixer = () => {
       if ('setSinkId' in element) {
           try {
               await (element as any).setSinkId(deviceId);
-              console.log(`${bus} output set to ${deviceId}`);
           } catch (e) {
               console.error(`Error setting sinkId for ${bus}`, e);
           }
-      } else {
-          console.warn("Browser does not support setSinkId");
       }
   };
+
+  const refreshAllStreams = useCallback(() => {
+    resumeContext();
+    decksRef.current.forEach((deck, id) => {
+      if (deck.element && deck.currentUrl) {
+         initHls(deck.element, deck.currentUrl, deck, id);
+      }
+    });
+  }, [initHls, resumeContext]);
 
   return {
     allDeckIds: DECKS, activeStation, decksBitrate,
@@ -307,8 +327,9 @@ export const useAudioMixer = () => {
         deck.source = source; deck.micStream = stream;
       } catch (err) { console.error(err); }
     },
+    refreshAllStreams,
     outputDevices,
     setOutputDevice,
-    isAnyPlaying // Exported state
+    isAnyPlaying
   };
 };
