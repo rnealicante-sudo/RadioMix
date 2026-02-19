@@ -5,11 +5,11 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
 const env = loadEnv(mode, process.cwd(), '')
 return {
-// Usamos el nombre exacto de tu repo
-base: '/RadioMix/',
+// Usamos la ruta vacía para máxima compatibilidad
+base: '',
 plugins: [react()],
 define: {
-'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY)
+'process.env': env
 },
 resolve: {
 alias: {
@@ -19,14 +19,11 @@ alias: {
 build: {
 outDir: 'dist',
 assetsDir: 'assets',
-// Esto evita conflictos de archivos viejos
 emptyOutDir: true,
-// Esto asegura que los nombres de archivos sean compatibles
+// Esto evita que los nombres de archivos cambien y se pierdan
 rollupOptions: {
 output: {
-assetFileNames: 'assets/[name].[ext]',
-chunkFileNames: 'assets/[name].js',
-entryFileNames: 'assets/[name].js',
+manualChunks: undefined,
 },
 },
 }
