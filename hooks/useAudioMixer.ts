@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DeckId, RecorderState, ExportFormat } from '../types';
 
-const DECKS: DeckId[] = ['MIC', 'A', 'RNE_EMISORAS', 'ES_RADIO', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'D', 'E', 'F'];
+// Se ha intercambiado 'ES_RADIO' por 'D' (Radio 5 Alicante) en el orden del array
+const DECKS: DeckId[] = ['MIC', 'A', 'RNE_EMISORAS', 'D', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'ES_RADIO', 'E', 'F'];
 
 export const RADIO_STATIONS_MAP: Record<string, { name: string, url: string }[]> = {
   'RNE_EMISORAS': [

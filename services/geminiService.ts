@@ -44,13 +44,13 @@ export const fetchAlicanteWeather = async (): Promise<WeatherData> => {
 
 /**
  * Obtiene las noticias más recientes sobre la RADIO EN ESPAÑA.
- * Actualización permanente mediante Google Search.
+ * Actualización permanente mediante Google Search consultando multitud de fuentes.
  */
 export const fetchRadioNews = async (): Promise<NewsItem[]> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: "Busca las últimas noticias de HOY sobre la radio en España. Incluye información sobre emisoras (SER, COPE, Onda Cero, RNE, esRadio), cambios en el dial FM/DAB+, fichajes de locutores, datos del EGM y tecnología broadcast en España. Fuentes recomendadas: Gorka Zumeta, PRNoticias, El Español, El Confidencial Digital y diarios nacionales.",
+      contents: "Busca las últimas noticias de HOY sobre la industria de la radio en España. Incluye información sobre emisoras (SER, COPE, Onda Cero, RNE, esRadio, RAC1, Catalunya Ràdio, Los40, Dial, Rock FM), cambios en el dial FM/DAB+, fichajes de locutores, datos del EGM, podcasts de éxito y tecnología broadcast en España. Fuentes obligatorias: Gorka Zumeta (gorkazumeta.com), PRNoticias, El Español (sección medios), El Confidencial Digital, Dircomfidencial, Audiovisual451, Todo TV News, Panorama Audiovisual, Cine y Tele, El Mundo (comunicación), El País (medios).",
       config: {
         tools: [{ googleSearch: {} }],
       },
@@ -77,7 +77,7 @@ export const fetchRadioNews = async (): Promise<NewsItem[]> => {
       return getFallbackNews('RADIO_ES');
     }
 
-    return newsItems.slice(0, 10);
+    return newsItems.slice(0, 12); // Más noticias para un teletipo más rico
   } catch (error) {
     console.error("Error fetching Radio Spain news:", error);
     return getFallbackNews('RADIO_ES');
@@ -101,8 +101,10 @@ export const generateMixName = async (trackA: string, trackB: string): Promise<s
 
 const getFallbackNews = (type: 'RADIO_ES' | 'RADIO'): NewsItem[] => {
   return [
-    { title: "Sintonizando la actualidad de la radio en España (SER, COPE, Onda Cero, RNE)...", url: "#", source: "RADIO_ES" },
-    { title: "Actualización permanente del dial y la industria radiofónica nacional", url: "#", source: "BROADCAST" },
-    { title: "Consultando las últimas noticias de Gorka Zumeta y medios especializados...", url: "#", source: "INFO" }
+    { title: "Sintonizando la actualidad de la radio en España: SER, COPE, Onda Cero, RNE, esRadio y más...", url: "#", source: "RADIO_ES" },
+    { title: "Gorka Zumeta: Análisis de la última hora en el sector radiofónico y podcasting nacional", url: "https://www.gorkazumeta.com", source: "ZUMETA" },
+    { title: "PRNoticias: Fichajes, audiencias y movimientos en los grandes grupos de comunicación", url: "https://prnoticias.com", source: "PRNOTICIAS" },
+    { title: "DAB+ en España: Expansión de la radio digital terrestre en nuevas provincias", url: "#", source: "BROADCAST" },
+    { title: "EGM: Próxima oleada de audiencias y tendencias de consumo de audio digital", url: "#", source: "AUDIENCIA" }
   ];
 };
