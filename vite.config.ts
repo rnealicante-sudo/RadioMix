@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     
     return {
       // Configuramos la base con el nombre de tu repositorio
-      base: '/RadioMix/', 
+      base: '/radiomix/', 
       
       server: {
         port: 3000,
