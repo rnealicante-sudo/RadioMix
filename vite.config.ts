@@ -5,6 +5,7 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
 const env = loadEnv(mode, process.cwd(), '')
 return {
+// Usamos el nombre exacto de tu repo
 base: '/RadioMix/',
 plugins: [react()],
 define: {
@@ -18,7 +19,16 @@ alias: {
 build: {
 outDir: 'dist',
 assetsDir: 'assets',
+// Esto evita conflictos de archivos viejos
 emptyOutDir: true,
+// Esto asegura que los nombres de archivos sean compatibles
+rollupOptions: {
+output: {
+assetFileNames: 'assets/[name].[ext]',
+chunkFileNames: 'assets/[name].js',
+entryFileNames: 'assets/[name].js',
+},
+},
 }
 }
 })
