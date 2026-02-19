@@ -17,7 +17,7 @@ export interface WeatherData {
 
 /**
  * Obtiene el clima actual de Alicante usando Google Search Grounding.
- * Se fuerza la salida JSON para una integración limpia.
+ * Se mantiene para información del estudio.
  */
 export const fetchAlicanteWeather = async (): Promise<WeatherData> => {
   try {
@@ -43,20 +43,19 @@ export const fetchAlicanteWeather = async (): Promise<WeatherData> => {
 };
 
 /**
- * Obtiene las noticias más recientes de Alicante ciudad y provincia.
- * Extrae información verídica mediante búsqueda en tiempo real.
+ * Obtiene las noticias más recientes sobre la RADIO EN ESPAÑA.
+ * Actualización permanente mediante Google Search.
  */
-export const fetchAlicanteNews = async (): Promise<NewsItem[]> => {
+export const fetchRadioNews = async (): Promise<NewsItem[]> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: "Busca las 10 noticias más relevantes y de última hora ocurridas hoy en Alicante ciudad y provincia (España). Quiero titulares directos para un teletipo de radio de fuentes como Diario Información, Alicante Plaza o similares.",
+      contents: "Busca las últimas noticias de HOY sobre la radio en España. Incluye información sobre emisoras (SER, COPE, Onda Cero, RNE, esRadio), cambios en el dial FM/DAB+, fichajes de locutores, datos del EGM y tecnología broadcast en España. Fuentes recomendadas: Gorka Zumeta, PRNoticias, El Español, El Confidencial Digital y diarios nacionales.",
       config: {
         tools: [{ googleSearch: {} }],
       },
     });
 
-    // Extraemos las fuentes reales de Grounding
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const newsItems: NewsItem[] = [];
     const seenUrls = new Set<string>();
@@ -66,7 +65,7 @@ export const fetchAlicanteNews = async (): Promise<NewsItem[]> => {
         if (chunk.web && chunk.web.uri && chunk.web.title && !seenUrls.has(chunk.web.uri)) {
           seenUrls.add(chunk.web.uri);
           newsItems.push({
-            title: chunk.web.title.replace(/ - .*$/, '').trim(), // Limpiamos el título del sitio web
+            title: chunk.web.title.replace(/ - .*$/, '').trim(),
             url: chunk.web.uri,
             source: new URL(chunk.web.uri).hostname.replace('www.', '').split('.')[0].toUpperCase()
           });
@@ -74,15 +73,14 @@ export const fetchAlicanteNews = async (): Promise<NewsItem[]> => {
       });
     }
 
-    // Si por algún motivo el grounding no devuelve chunks, intentamos parsear el texto
     if (newsItems.length === 0) {
-      return getFallbackNews('ALICANTE');
+      return getFallbackNews('RADIO_ES');
     }
 
-    return newsItems.slice(0, 8); // Devolvemos las 8 mejores noticias
+    return newsItems.slice(0, 10);
   } catch (error) {
-    console.error("Error fetching Alicante news:", error);
-    return getFallbackNews('ALICANTE');
+    console.error("Error fetching Radio Spain news:", error);
+    return getFallbackNews('RADIO_ES');
   }
 };
 
@@ -101,15 +99,10 @@ export const generateMixName = async (trackA: string, trackB: string): Promise<s
   }
 };
 
-// Noticias de reserva mejoradas
-const getFallbackNews = (type: 'ALICANTE' | 'RADIO'): NewsItem[] => {
-  if (type === 'ALICANTE') {
-    return [
-      { title: "Sintonizando la actualidad de la Costa Blanca en directo...", url: "#", source: "REVOX" },
-      { title: "Previsión: Jornada soleada con temperaturas agradables en el litoral", url: "https://www.aemet.es", source: "METEO" },
-      { title: "El ADDA y el Teatro Principal presentan su nueva agenda cultural", url: "https://www.alicante.es", source: "CULTURA" },
-      { title: "ReVoxMix: Innovación digital en el broadcasting desde Alicante", url: "#", source: "BROADCAST" }
-    ];
-  }
-  return [];
+const getFallbackNews = (type: 'RADIO_ES' | 'RADIO'): NewsItem[] => {
+  return [
+    { title: "Sintonizando la actualidad de la radio en España (SER, COPE, Onda Cero, RNE)...", url: "#", source: "RADIO_ES" },
+    { title: "Actualización permanente del dial y la industria radiofónica nacional", url: "#", source: "BROADCAST" },
+    { title: "Consultando las últimas noticias de Gorka Zumeta y medios especializados...", url: "#", source: "INFO" }
+  ];
 };

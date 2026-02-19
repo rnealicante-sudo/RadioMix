@@ -4,7 +4,7 @@ import { Deck } from './components/Deck';
 import { Visualizer } from './components/Visualizer';
 import { Recorder } from './components/Recorder';
 import { useAudioMixer } from './hooks/useAudioMixer';
-import { fetchAlicanteNews, fetchAlicanteWeather, NewsItem, WeatherData } from './services/geminiService';
+import { fetchRadioNews, fetchAlicanteWeather, NewsItem, WeatherData } from './services/geminiService';
 import { RefreshCw, Thermometer, Radio, Clock, Wifi, Settings, Activity, ShieldAlert, Speaker, Power } from 'lucide-react';
 import { NewsTicker as NewsTickerComponent } from './components/NewsTicker';
 import { Knob } from './components/Knob';
@@ -26,7 +26,7 @@ export default function App() {
   
   const [isOnAir, setIsOnAir] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [weather, setWeather] = useState<WeatherData>({ temp: "--°C", condition: "Actualizando..." });
+  const [weather, setWeather] = useState<WeatherData>({ temp: "--°C", condition: "Alicante" });
   const [engineReady, setEngineReady] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
@@ -53,11 +53,11 @@ export default function App() {
   const loadData = useCallback(async () => {
     setNewsLoading(true);
     try {
-      const [aNews, aWeather] = await Promise.all([ 
-        fetchAlicanteNews().catch(() => []), 
+      const [rNews, aWeather] = await Promise.all([ 
+        fetchRadioNews().catch(() => []), 
         fetchAlicanteWeather().catch(() => ({ temp: "--°C", condition: "Alicante" }))
       ]);
-      if (aNews.length > 0) setNews(aNews);
+      if (rNews.length > 0) setNews(rNews);
       setWeather(aWeather);
     } catch (e) { 
       console.error("Data Load Error:", e);
@@ -66,7 +66,7 @@ export default function App() {
     }
   }, []);
 
-  // Carga inicial y refresco cada 30 min
+  // Carga inicial y refresco cada 30 min para mantener actualización permanente
   useEffect(() => {
     if (engineReady) {
       loadData();
@@ -326,7 +326,7 @@ export default function App() {
 
       {/* FOOTER TICKER */}
       <div className="w-full shrink-0 z-40 bg-black border-t border-slate-800/50">
-          <NewsTickerComponent news={news} loading={newsLoading} label="TELETYPE ALICANTE" />
+          <NewsTickerComponent news={news} loading={newsLoading} label="RADIO ESPAÑA TELETYPE" />
       </div>
     </div>
   );
