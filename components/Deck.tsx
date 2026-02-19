@@ -29,6 +29,7 @@ export const Deck: React.FC<DeckProps> = ({
     bitrate
 }) => {
   const isRne = id === 'MIC' || id === 'A' || id === 'RNE_EMISORAS';
+  const isEsRadio = id === 'ES_RADIO';
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8); 
   const [isOn, setIsOn] = useState(true); 
@@ -86,6 +87,7 @@ export const Deck: React.FC<DeckProps> = ({
       if (id === 'A') return 'RNE OCASIONAL';
       if (id === 'RNE_EMISORAS') return 'RNE CADENAS';
       if (id === 'F') return 'SER PROVINCIAL';
+      if (id === 'ES_RADIO') return 'ES RADIO';
       return subStations[0]?.name || id;
   };
 
@@ -97,7 +99,7 @@ export const Deck: React.FC<DeckProps> = ({
       {/* CHANNEL HEADER */}
       <div className="w-full text-center py-2 bg-[#112233] border-b border-[#2d4b6b] shrink-0">
           <div className="text-[7px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">NET STREAM</div>
-          <div className={`text-[9px] font-black tracking-tighter truncate px-1 uppercase ${isRne ? 'text-amber-500' : 'text-cyan-400'}`}>
+          <div className={`text-[9px] font-black tracking-tighter truncate px-1 uppercase ${isRne ? 'text-amber-500' : isEsRadio ? 'text-white' : 'text-cyan-400'}`}>
               {getSubLabel()}
           </div>
       </div>
