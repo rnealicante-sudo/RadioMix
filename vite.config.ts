@@ -5,11 +5,11 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
 const env = loadEnv(mode, process.cwd(), '')
 return {
-// Usamos la ruta vacía para máxima compatibilidad
-base: '',
+base: './',
 plugins: [react()],
 define: {
-'process.env': env
+'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
+'process.env.NODE_ENV': JSON.stringify(mode)
 },
 resolve: {
 alias: {
@@ -19,13 +19,7 @@ alias: {
 build: {
 outDir: 'dist',
 assetsDir: 'assets',
-emptyOutDir: true,
-// Esto evita que los nombres de archivos cambien y se pierdan
-rollupOptions: {
-output: {
-manualChunks: undefined,
-},
-},
+emptyOutDir: true
 }
 }
 })
