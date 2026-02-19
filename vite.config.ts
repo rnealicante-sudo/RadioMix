@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     
     return {
       // IMPORTANTE: Sustituye 'revoxmix' por el nombre exacto de tu repositorio en GitHub
-      base: '/revoxmix/', 
+      base: '/RadioMix/', 
       server: {
         port: 3000,
         host: '0.0.0.0',
