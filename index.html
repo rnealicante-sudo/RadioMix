@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b111a" />
-    <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit" />
-    <title>ReVoxMix - Professional Broadcast</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="ReVoxMix Professional Digital Broadcast Unit - Alicante" />
+    <title>ReVoxMix - Full Screen Broadcast</title>
     
-    <!-- CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
       :root {
@@ -61,23 +62,29 @@
         border: 1px solid #1e293b;
       }
 
+      /* DARK TECH CHANNEL FADER CAP */
       .fader-vertical::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #334155;
-        height: 22px;
-        width: 38px;
+        height: 22px; /* Visual Width */
+        width: 38px;  /* Visual Height */
         border-radius: 2px;
+        
+        /* Capas de fondo: Línea Indicadora > Textura de Agarre > Color Base */
         background: 
+            /* Línea Central Cian Brillante */
             linear-gradient(90deg, transparent 48%, #22d3ee 48%, #22d3ee 52%, transparent 52%),
+            /* Sutil gradiente metálico oscuro */
             linear-gradient(180deg, #334155 0%, #1e293b 40%, #0f172a 100%);
+            
         cursor: pointer;
-        margin-top: -9px;
+        margin-top: -9px; /* (4 - 22) / 2 = -9 */
         box-shadow: 0 4px 6px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
         position: relative;
         z-index: 10;
       }
 
-      /* MASTER FADER */
+      /* MASTER FADER (RED PROFESSIONAL STYLE) */
       .fader-master {
         -webkit-appearance: none;
         background: transparent;
@@ -95,17 +102,23 @@
         border: none;
       }
 
+      /* RED TECH MASTER FADER CAP */
       .fader-master::-webkit-slider-thumb {
         -webkit-appearance: none;
         border: 1px solid #7f1d1d;
-        height: 28px;
-        width: 50px;
+        height: 28px; /* Visual Width */
+        width: 50px;  /* Visual Height */
         border-radius: 3px;
+        
+        /* Capas de fondo: Línea Indicadora > Color Base */
         background: 
+            /* Línea Central Blanca Pura */
             linear-gradient(90deg, transparent 48%, #ffffff 48%, #ffffff 52%, transparent 52%),
+            /* Gradiente Rojo Profundo */
             linear-gradient(180deg, #ef4444 0%, #b91c1c 50%, #7f1d1d 100%);
+            
         cursor: pointer;
-        margin-top: 16px;
+        margin-top: 16px; /* (60 - 28) / 2 = 16 */
         box-shadow: 0 5px 12px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.2);
         position: relative;
       }
@@ -114,323 +127,30 @@
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
 
-      @keyframes ticker {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-33.33%); }
+      .toggle-switch {
+        position: relative; width: 30px; height: 50px; background: #020617; border-radius: 2px; border: 1px solid #1e293b; cursor: pointer;
       }
+      .toggle-handle {
+        position: absolute; left: 2px; width: 24px; height: 24px; background: linear-gradient(to bottom, #e2e8f0, #64748b); border-radius: 2px; transition: top 0.2s ease;
+      }
+      .toggle-switch.up .toggle-handle { top: 2px; }
+      .toggle-switch.down .toggle-handle { top: 22px; }
     </style>
-
     <script type="importmap">
     {
       "imports": {
-        "react": "https://esm.sh/react@19.0.0",
-        "react-dom": "https://esm.sh/react-dom@19.0.0",
-        "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.475.0",
-        "@google/genai": "https://esm.sh/@google/genai@1.3.0",
-        "htm": "https://esm.sh/htm@3.1.1"
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0"
       }
     }
     </script>
+  <link rel="stylesheet" href="/index.css">
 </head>
-<body>
+  <body>
     <div id="root"></div>
-
-    <script type="module">
-        import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import * as Lucide from 'lucide-react';
-        import { GoogleGenAI } from '@google/genai';
-        import htm from 'htm';
-
-        const html = htm.bind(React.createElement);
-
-        // --- CONFIG & CONSTANTS ---
-        const GEMINI_API_KEY = ""; // Pon tu clave aquí si quieres usar IA
-        const DECKS = ['MIC', 'A', 'RNE_EMISORAS', 'D', 'RADIO_MARCA', 'RADIO_ESPANA', 'C', 'ES_RADIO', 'E', 'F'];
-        
-        const RADIO_STATIONS_MAP = {
-          'RNE_EMISORAS': [
-            { name: 'RNE 1 (Nacional)', url: "https://rnelivestream.rtve.es/rne1/val/master.m3u8" },
-            { name: 'RNE Clásica', url: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r2_main.m3u8" },
-            { name: 'RNE 3', url: "https://rtvelivestream.rtve.es/rtvesec/rne/rne_r3_main.m3u8" },
-            { name: 'RNE 4 (Catalunya)', url: "https://rnelivestream.rtve.es/rner4/main/master.m3u8" },
-            { name: 'RNE 5 (Todo Noticias)', url: "https://rnelivestream.rtve.es/rne5/ali/master.m3u8" },
-          ],
-          'A': [
-            { name: 'RNE OCA 1', url: "https://rnelivestream.rtve.es/rneoca/oca1/master.m3u8" },
-            { name: 'RNE OCA 2', url: "https://rnelivestream.rtve.es/rneoca/oca2/master.m3u8" },
-          ],
-          'F': [
-            { name: 'SER Alicante', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ALICANTEAAC.aac" },
-            { name: 'SER Elche', url: "https://playerservices.streamtheworld.com/api/livestream-redirect/SER_ELCHEAAC.aac" },
-          ],
-          'C': [{ name: 'Onda Cero Alicante', url: "https://atres-live.ondacero.es/live/delegaciones/oc/alicante/master.m3u8" }],
-          'D': [{ name: 'Radio 5 Alicante', url: "https://rnelivestream.rtve.es/rne5/ali/master.m3u8" }],
-          'E': [{ name: 'COPE Alicante', url: "https://alicante-copesedes-rrcast.flumotion.com/copesedes/alicante.mp3" }],
-          'MIC': [{ name: 'RNE 1 C. Valenciana', url: "https://rnelivestream.rtve.es/rne1/val/master.m3u8" }],
-          'ES_RADIO': [{ name: 'ES RADIO', url: "https://sonic.mediatelekom.net/8274/stream" }],
-          'RADIO_MARCA': [{ name: 'Radio Marca Valencia', url: "https://27913.live.streamtheworld.com/RADIOMARCA_VALENCIA.mp3" }],
-          'RADIO_ESPANA': [{ name: 'Radio España Live', url: "https://stream-151.zeno.fm/7ywx2u45vv8uv" }],
-        };
-
-        // --- SERVICES ---
-        const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
-
-        const fetchAlicanteWeather = async () => {
-          if (!ai) return { temp: "--°C", condition: "Alicante" };
-          try {
-            const response = await ai.models.generateContent({
-              model: "gemini-3-flash-preview",
-              contents: "Busca la temperatura actual exacta en Alicante, España. Responde solo JSON: {\"temp\": \"XX°C\", \"condition\": \"Estado\"}",
-              config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" },
-            });
-            return JSON.parse(response.text);
-          } catch (e) { return { temp: "--°C", condition: "Alicante" }; }
-        };
-
-        const fetchRadioNews = async () => {
-          const fallback = [
-            { title: "Sintonizando la actualidad de la radio en España...", url: "#", source: "RADIO_ES" },
-            { title: "DAB+ en España: Expansión de la radio digital terrestre", url: "#", source: "BROADCAST" }
-          ];
-          if (!ai) return fallback;
-          try {
-            const response = await ai.models.generateContent({
-              model: "gemini-3-flash-preview",
-              contents: "Últimas noticias de hoy sobre radio en España.",
-              config: { tools: [{ googleSearch: {} }] },
-            });
-            const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-            return chunks.map(c => ({ title: c.web.title, url: c.web.uri, source: "NEWS" })).slice(0, 10);
-          } catch (e) { return fallback; }
-        };
-
-        // --- HOOKS ---
-        const useAudioMixer = () => {
-          const audioContextRef = useRef(null);
-          const mixBusRef = useRef(null);
-          const masterGainRef = useRef(null);
-          const masterAnalyserRef = useRef(null);
-          const decksRef = useRef(new Map());
-          const masterDestRef = useRef(null);
-          const masterAudioRef = useRef(new Audio());
-
-          const [isAnyPlaying, setIsAnyPlaying] = useState(false);
-          const [recorders, setRecorders] = useState([
-            { id: 0, isRecording: false, time: 0, chunks: [], source: 'MASTER', format: 'MP3' }
-          ]);
-
-          const initAudio = useCallback(() => {
-            if (audioContextRef.current) return;
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            audioContextRef.current = ctx;
-
-            const mixBus = ctx.createGain(); mixBusRef.current = mixBus;
-            const masterGain = ctx.createGain(); masterGainRef.current = masterGain;
-            const masterAnalyser = ctx.createAnalyser(); masterAnalyserRef.current = masterAnalyser;
-            const mDest = ctx.createMediaStreamDestination(); masterDestRef.current = mDest;
-
-            mixBus.connect(masterGain).connect(masterAnalyser).connect(mDest);
-            masterAudioRef.current.srcObject = mDest.stream;
-            masterAudioRef.current.play().catch(() => {});
-
-            DECKS.forEach(id => {
-              const el = new Audio(); el.crossOrigin = "anonymous";
-              const source = ctx.createMediaElementSource(el);
-              const gain = ctx.createGain();
-              const analyser = ctx.createAnalyser();
-              source.connect(gain).connect(analyser).connect(mixBus);
-              decksRef.current.set(id, { element: el, gain, analyser });
-            });
-          }, []);
-
-          return {
-            initAudio,
-            allDeckIds: DECKS,
-            togglePlay: (id) => {
-                initAudio();
-                const d = decksRef.current.get(id);
-                if (d.element.paused) d.element.play(); else d.element.pause();
-                setIsAnyPlaying([...decksRef.current.values()].some(v => !v.element.paused));
-            },
-            setDeckVolume: (id, v) => decksRef.current.get(id)?.gain.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05),
-            setMasterVolume: (v) => masterGainRef.current?.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.05),
-            getDeckAnalyser: (id) => decksRef.current.get(id)?.analyser,
-            getMasterAnalyser: () => masterAnalyserRef.current,
-            changeStream: (id, url) => {
-                const d = decksRef.current.get(id);
-                if (url.includes('.m3u8') && window.Hls && window.Hls.isSupported()) {
-                    if (d.hls) d.hls.destroy();
-                    const hls = new window.Hls(); hls.loadSource(url); hls.attachMedia(d.element);
-                    d.hls = hls;
-                } else { d.element.src = url; }
-                d.element.play();
-            },
-            isAnyPlaying,
-            recorders
-          };
-        };
-
-        // --- COMPONENTS ---
-        const Knob = ({ value, min, max, onChange, label, colorClass = "bg-cyan-400" }) => html`
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative w-7 h-7 bg-[#1e293b] rounded-full border border-slate-900 shadow-lg">
-              <input type="range" min=${min} max=${max} step="0.1" value=${value} onChange=${onChange} className="absolute w-full h-full opacity-0 cursor-pointer z-10" />
-              <div className="absolute top-0 left-0 w-full h-full rounded-full flex items-center justify-center" style=${{ transform: `rotate(${((value - min) / (max - min)) * 270 - 135}deg)` }}>
-                <div className=${`w-[2px] h-[40%] rounded-full absolute top-[10%] ${colorClass}`}></div>
-              </div>
-              <div className="absolute inset-[25%] rounded-full bg-gradient-to-br from-[#334155] to-[#0f172a]"></div>
-            </div>
-            <label className="text-[7px] font-bold text-slate-500 mt-1 uppercase">${label}</label>
-          </div>
-        `;
-
-        const MiniVisualizer = ({ analyser, width = 12, height = 150, orientation = 'vertical' }) => {
-          const canvasRef = useRef(null);
-          useEffect(() => {
-            if (!canvasRef.current || !analyser) return;
-            const ctx = canvasRef.current.getContext('2d');
-            const data = new Uint8Array(analyser.frequencyBinCount);
-            let anim;
-            const draw = () => {
-              anim = requestAnimationFrame(draw);
-              analyser.getByteFrequencyData(data);
-              const avg = data.reduce((a, b) => a + b, 0) / data.length;
-              ctx.clearRect(0, 0, width, height);
-              ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, width, height);
-              const h = (avg / 255) * height;
-              ctx.fillStyle = avg > 200 ? '#ef4444' : '#4ade80';
-              if (orientation === 'vertical') ctx.fillRect(0, height - h, width, h);
-              else ctx.fillRect(0, 0, (avg / 255) * width, height);
-            };
-            draw();
-            return () => cancelAnimationFrame(anim);
-          }, [analyser]);
-          return html`<canvas ref=${canvasRef} width=${width} height=${height} className="rounded-sm" />`;
-        };
-
-        const Visualizer = ({ analyser }) => {
-          const canvasRef = useRef(null);
-          useEffect(() => {
-            if (!canvasRef.current || !analyser) return;
-            const ctx = canvasRef.current.getContext('2d');
-            const data = new Uint8Array(analyser.frequencyBinCount);
-            let anim;
-            const draw = () => {
-              anim = requestAnimationFrame(draw);
-              analyser.getByteFrequencyData(data);
-              ctx.fillStyle = '#050910'; ctx.fillRect(0, 0, 1000, 75);
-              const barWidth = 1000 / 64;
-              for (let i = 0; i < 64; i++) {
-                const h = (data[i] / 255) * 75;
-                ctx.fillStyle = `hsl(${200 + i}, 70%, 50%)`;
-                ctx.fillRect(i * barWidth, 75 - h, barWidth - 1, h);
-              }
-            };
-            draw();
-            return () => cancelAnimationFrame(anim);
-          }, [analyser]);
-          return html`<div className="w-full h-full flex items-center"><canvas ref=${canvasRef} width="1000" height="75" className="w-full h-full" /></div>`;
-        };
-
-        const Deck = ({ id, onTogglePlay, onVolumeChange, onStreamChange, analyser }) => {
-          const [vol, setVol] = useState(0.8);
-          const stations = RADIO_STATIONS_MAP[id] || [];
-          return html`
-            <div className="flex flex-col items-center border-r border-[#15283d] flex-1 min-w-[100px] h-full bg-[#1e3a57] shadow-2xl">
-              <div className="w-full text-center py-2 bg-[#112233] border-b border-[#2d4b6b]">
-                <div className="text-[7px] font-bold text-slate-500 uppercase">NET STREAM</div>
-                <div className="text-[9px] font-black text-cyan-400 uppercase truncate px-1">${id}</div>
-              </div>
-              <div className="w-full px-1 py-2 bg-[#0d1a25]/30">
-                <select onChange=${e => onStreamChange(e.target.value)} className="w-full bg-[#1b324a] text-[8px] text-white border border-slate-600 rounded p-1">
-                  ${stations.map(s => html`<option value=${s.url}>${s.name}</option>`)}
-                </select>
-                <button onClick=${onTogglePlay} className="w-full mt-2 h-9 bg-green-600 text-white rounded flex items-center justify-center">
-                  <${Lucide.Play} size=${12} fill="currentColor" />
-                </button>
-              </div>
-              <div className="flex-1 w-full flex flex-row items-end justify-center gap-1.5 px-1.5 bg-[#080c14] pt-2 border-t border-slate-800">
-                <${MiniVisualizer} analyser=${analyser} width=${14} height=${140} />
-                <div className="h-full w-10 relative flex items-center justify-center">
-                  <input type="range" min="0" max="1" step="0.01" value=${vol} onChange=${e => { setVol(e.target.value); onVolumeChange(e.target.value); }} className="fader-vertical" style=${{ '--fader-height': '140px' }} />
-                </div>
-              </div>
-            </div>
-          `;
-        };
-
-        // --- MAIN APP ---
-        const App = () => {
-          const mixer = useAudioMixer();
-          const [engineReady, setEngineReady] = useState(false);
-          const [weather, setWeather] = useState({ temp: "--°C", condition: "Alicante" });
-          const [news, setNews] = useState([]);
-          const [masterVol, setMasterVol] = useState(0.8);
-
-          useEffect(() => {
-            if (engineReady) {
-              fetchAlicanteWeather().then(setWeather);
-              fetchRadioNews().then(setNews);
-            }
-          }, [engineReady]);
-
-          if (!engineReady) return html`
-            <div className="fixed inset-0 z-[100] bg-[#0b111a] flex flex-col items-center justify-center p-6 text-center">
-                <${Lucide.Radio} size=${80} className="text-cyan-500 mb-8 animate-pulse" />
-                <h1 className="text-4xl font-black text-white mb-4 italic">REVOX-MIX DIGITAL PRO</h1>
-                <button onClick=${() => { mixer.initAudio(); setEngineReady(true); }} className="bg-cyan-600 hover:bg-cyan-50 text-white px-16 py-5 rounded-full font-black text-xl shadow-2xl transition-all">START STUDIO</button>
-            </div>
-          `;
-
-          return html`
-            <div className="flex flex-col bg-[#0b111a] text-slate-300 h-screen w-full overflow-hidden">
-              <div className="flex items-center bg-[#050910] border-b border-slate-800 h-[65px] shrink-0">
-                <div className="w-[160px] flex items-center justify-center border-r border-slate-800/60 h-full bg-[#080c14]">
-                  <span className="text-[14px] font-black text-slate-100 italic">REVOX<span className="text-cyan-500">MIX</span></span>
-                </div>
-                <div className="flex-1 h-full px-4 flex items-center gap-4">
-                  <${Visualizer} analyser=${mixer.getMasterAnalyser()} />
-                </div>
-              </div>
-
-              <div className="flex-1 flex overflow-hidden bg-[#0d141f] p-1 gap-1">
-                <div className="w-[160px] flex flex-col bg-[#0b111a] border border-slate-800 rounded-sm p-2">
-                  <div className=${`py-3 flex justify-center rounded border-2 font-black ${mixer.isAnyPlaying ? 'bg-red-600 border-red-400 text-white' : 'bg-black border-slate-900 text-slate-800'}`}>ON AIR</div>
-                  <div className="mt-2 bg-black p-2 rounded border border-slate-800 text-center">
-                    <div className="text-cyan-500 font-mono text-xl">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
-                    <div className="text-amber-500 text-sm">${weather.temp}</div>
-                  </div>
-                </div>
-
-                <div className="flex-1 flex gap-[1px] bg-[#050910] p-[1px] rounded border border-slate-800 overflow-x-auto">
-                  ${mixer.allDeckIds.map(id => html`
-                    <${Deck} key=${id} id=${id} onTogglePlay=${() => mixer.togglePlay(id)} onVolumeChange=${v => mixer.setDeckVolume(id, v)} onStreamChange=${url => mixer.changeStream(id, url)} analyser=${mixer.getDeckAnalyser(id)} />
-                  `)}
-                </div>
-
-                <div className="w-[140px] flex flex-col bg-[#0b111a] border border-slate-800 p-2">
-                  <span className="text-[9px] font-black text-cyan-400 uppercase text-center mb-2">Master Bus</span>
-                  <div className="flex-1 relative bg-black rounded border border-slate-800 flex justify-center">
-                    <input type="range" min="0" max="1" step="0.01" value=${masterVol} onChange=${e => { setMasterVol(e.target.value); mixer.setMasterVolume(e.target.value); }} className="fader-master" style=${{ width: '160px', height: '60px' }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full bg-black border-t border-slate-800 h-10 flex items-center overflow-hidden">
-                <div className="bg-amber-600 px-4 h-full flex items-center text-black font-black text-xs">TELETYPE</div>
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex whitespace-nowrap animate-[ticker_60s_linear_infinite]">
-                    ${news.map(n => html`<span className="px-10 text-xs font-bold text-slate-300">${n.title}</span>`)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-        };
-
-        createRoot(document.getElementById('root')).render(html`<${App} />`);
-    </script>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
