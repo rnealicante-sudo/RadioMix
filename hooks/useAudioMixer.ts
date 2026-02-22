@@ -126,6 +126,10 @@ export const useAudioMixer = () => {
 
   const refreshDevices = useCallback(async () => {
     try {
+      // Explicitly request permissions to unlock labels (needed on some browsers)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+      
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
       console.log(`System: Found ${audioOutputs.length} hardware audio outputs.`);
