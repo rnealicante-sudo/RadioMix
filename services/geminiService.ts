@@ -1,8 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Inicialización según directrices
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Inicialización segura: no bloquea la app si no hay clave
+const apiKey = process.env.GEMINI_API_KEY || "";
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export interface NewsItem {
   title: string;
@@ -20,6 +21,7 @@ export interface WeatherData {
  * Se mantiene para información del estudio.
  */
 export const fetchAlicanteWeather = async (): Promise<WeatherData> => {
+  if (!ai) return { temp: "--°C", condition: "Alicante" };
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -47,6 +49,7 @@ export const fetchAlicanteWeather = async (): Promise<WeatherData> => {
  * Actualización permanente mediante Google Search consultando multitud de fuentes.
  */
 export const fetchRadioNews = async (): Promise<NewsItem[]> => {
+  if (!ai) return getFallbackNews('RADIO_ES');
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -88,6 +91,7 @@ export const fetchRadioNews = async (): Promise<NewsItem[]> => {
  * Genera un nombre creativo para el mix utilizando Gemini 3 Flash.
  */
 export const generateMixName = async (trackA: string, trackB: string): Promise<string> => {
+  if (!ai) return `Mix Alicante - ${new Date().toLocaleDateString()}`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',

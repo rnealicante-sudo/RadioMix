@@ -145,6 +145,12 @@ export const useAudioMixer = () => {
     el.onplay = updateGlobalPlayState; el.onpause = updateGlobalPlayState;
 
     const isHlsUrl = url.includes('.m3u8');
+    
+    // Mixed Content Warning for GitHub Pages (HTTPS)
+    if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+      console.warn(`Mixed Content Warning: The stream "${url}" is HTTP and will likely be blocked on HTTPS (GitHub Pages).`);
+    }
+
     if (window.Hls && window.Hls.isSupported() && isHlsUrl) {
       const hls = new window.Hls({ 
           enableWorker: true, 
@@ -221,6 +227,21 @@ export const useAudioMixer = () => {
         analyser.connect(aux2).connect(aux2Bus);
 
         const el = new Audio(); el.crossOrigin = "anonymous";
+        
+        // Fallback for CORS issues (allows audio to play even if visualizer fails)
+        el.addEventListener('error', () => {
+            if (el.crossOrigin) {
+                console.warn(`CORS error on deck ${id}. Disabling crossOrigin to allow playback.`);
+                el.removeAttribute('crossOrigin');
+                const src = el.src;
+                el.src = '';
+                setTimeout(() => { 
+                    el.src = src; 
+                    el.play().catch(() => console.log("Playback prevented by browser")); 
+                }, 50);
+            }
+        });
+
         const source = ctx.createMediaElementSource(el); source.connect(inputGain);
         
         const deck: DeckNodeGroup = {
