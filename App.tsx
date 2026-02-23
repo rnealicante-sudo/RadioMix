@@ -27,7 +27,7 @@ export default function App() {
   const [isOnAir, setIsOnAir] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherData>({ temp: "--°C", condition: "Alicante" });
-  const [engineReady, setEngineReady] = useState(false);
+  const [engineReady, setEngineReady] = useState(true);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
 
@@ -97,15 +97,6 @@ export default function App() {
 
   return (
     <div className="flex flex-col bg-[#0b111a] text-slate-300 font-sans overflow-hidden h-screen w-full select-none">
-      {!engineReady && (
-        <div className="fixed inset-0 z-[100] bg-[#0b111a] flex flex-col items-center justify-center p-6 text-center">
-            <Radio size={80} className="text-cyan-500 mb-8 animate-pulse" />
-            <h1 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase italic">REVOX-MIX DIGITAL PRO</h1>
-            <p className="text-slate-500 mb-8 max-w-sm uppercase text-[10px] tracking-widest font-bold">Initialize the 64-bit real-time broadcasting engine</p>
-            <button onClick={handleStartEngine} className="bg-cyan-600 hover:bg-cyan-500 text-white px-16 py-5 rounded-full font-black text-xl shadow-[0_0_50px_rgba(8,145,178,0.3)] transition-all transform active:scale-95">START STUDIO</button>
-        </div>
-      )}
-
       {/* HEADER SECTION */}
       <div className="flex items-center bg-[#050910] border-b border-slate-800 shadow-lg w-full h-[65px] shrink-0">
           <div className="w-[160px] flex items-center justify-center border-r border-slate-800/60 h-full bg-[#080c14]">
