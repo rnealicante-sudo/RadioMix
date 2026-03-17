@@ -99,8 +99,9 @@ export default function App() {
     <div className="flex flex-col bg-[#0b111a] text-slate-300 font-sans overflow-hidden h-screen w-full select-none">
       {/* HEADER SECTION */}
       <div className="flex items-center bg-[#050910] border-b border-slate-800 shadow-lg w-full h-[65px] shrink-0">
-          <div className="w-[160px] flex items-center justify-center border-r border-slate-800/60 h-full bg-[#080c14]">
-              <span className="text-[14px] font-black text-slate-100 tracking-[0.2em] uppercase italic">REVOX<span className="text-cyan-500">MIX</span></span>
+          <div className="w-[160px] flex flex-col items-center justify-center border-r border-slate-800/60 h-full bg-[#080c14]">
+              <span className="text-[14px] font-black text-slate-100 tracking-[0.2em] uppercase italic leading-none">REVOX<span className="text-cyan-500">MIX</span></span>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.1em] mt-0.5">by Raskachan</span>
           </div>
           <div className="flex-1 h-full px-4 overflow-hidden flex items-center gap-4">
               <div className="flex-1 h-full">
@@ -131,7 +132,7 @@ export default function App() {
           <div className="w-[160px] flex flex-col gap-1 shrink-0 h-full overflow-hidden">
               <div className="flex-1 flex flex-col bg-[#0b111a] border border-slate-800 rounded-sm overflow-hidden shadow-2xl">
                   <div className="w-full text-center py-1.5 bg-[#162030] border-b border-slate-700">
-                      <span className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em]">Broadcast Unit</span>
+                      <span className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em]">ESTACIONES DE RADIO</span>
                   </div>
                   
                   <div className="flex flex-col gap-1.5 p-1.5 overflow-hidden flex-1">
